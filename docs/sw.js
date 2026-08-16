@@ -4,7 +4,7 @@
  * can simply be precached wholesale. Bump CACHE when any of them change -
  * the old cache is dropped on activate.
  */
-var CACHE = 'historic-ink-v1';
+var CACHE = 'historic-ink-v2';
 
 var ASSETS = [
   './',

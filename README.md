@@ -55,10 +55,17 @@ dev/grade-test.html       grading harness, with the calibration sweep
 
 A finger covers the very thing it is trying to trace, which is the whole
 difficulty of this game on a phone rather than at a desk. While a stroke is in
-progress the pad draws a loupe in whichever corner the hand is furthest from,
-magnifying the area under the fingertip. The player's own line is drawn faded
-inside it — the point is to see the guide the finger is hiding, and at full
-strength their stroke simply hides it again.
+progress the pad draws a round glass riding just above the fingertip,
+magnifying the area underneath it. The player's own line is drawn faded inside
+it — the point is to see the guide the finger is hiding, and at full strength
+their stroke simply hides it again.
+
+It rides with the finger rather than parking in a corner. A corner loupe has to
+switch sides to stay out from under the hand, and that jump turned out to be far
+more distracting than the problem it was solving. Near the top of the card,
+where there is no room overhead, the glass drops below the fingertip instead,
+and it clamps to stay inside the card at the edges — but it always shows the tip
+dead centre, so the crosshair means the same thing wherever the glass sits.
 
 It renders through the same `_scene()` call as the pad itself, so it magnifies
 exactly what is on the card rather than a lookalike that could drift out of sync.

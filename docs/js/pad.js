@@ -18,10 +18,15 @@
   // The loupe: a magnified window on whatever is under the fingertip, shown
   // while drawing. A finger covers the very thing it is trying to trace, which
   // is the whole difficulty of the game on a phone rather than a desk.
-  var LOUPE = 0.30;         // side, as a fraction of the pad's short edge
-  var LOUPE_MAX = 132;      // ...but never bigger than this, in CSS px
+  //
+  // It rides just above the fingertip rather than sitting in a corner. A corner
+  // loupe has to switch sides to stay out from under the hand, and that jump is
+  // far more distracting than the thing it was avoiding.
+  var LOUPE = 0.34;         // diameter, as a fraction of the pad's short edge
+  var LOUPE_MAX = 124;      // ...but never bigger than this, in CSS px
   var LOUPE_ZOOM = 2.6;
-  var LOUPE_PAD = 10;       // inset from the pad's corner
+  var LOUPE_GAP = 20;       // clear air between fingertip and glass
+  var LOUPE_PAD = 6;        // keep it this far inside the card
 
   function Pad(canvas) {
     this.canvas = canvas;
@@ -188,31 +193,28 @@
 
   Pad.prototype._loupe = function (ctx, guide, inkc, card, rule) {
     var w = this._css.w, h = this._css.h;
-    var size = Math.min(LOUPE * Math.min(w, h), LOUPE_MAX);
+    var d = Math.min(LOUPE * Math.min(w, h), LOUPE_MAX);
+    var rad = d / 2;
     var tip = this._tip;
 
-    // Sit in whichever top corner the hand is further from, and drop to the
-    // bottom if the fingertip is up in the corners already.
-    var left = tip.x > w / 2;
-    var x = left ? LOUPE_PAD : w - size - LOUPE_PAD;
-    var y = LOUPE_PAD;
-    if (tip.y < size + LOUPE_PAD * 3) y = h - size - LOUPE_PAD;
+    // Ride above the fingertip, and only drop below it when there is no room
+    // left overhead - near the top of the card, where the alternative is a
+    // glass half off the edge.
+    var cy = tip.y - LOUPE_GAP - rad;
+    if (cy - rad < LOUPE_PAD) cy = tip.y + LOUPE_GAP + rad;
+    cy = Math.max(rad + LOUPE_PAD, Math.min(h - rad - LOUPE_PAD, cy));
+    var cx = Math.max(rad + LOUPE_PAD, Math.min(w - rad - LOUPE_PAD, tip.x));
 
-    var r = 10;
     ctx.save();
     ctx.beginPath();
-    if (ctx.roundRect) {
-      ctx.roundRect(x, y, size, size, r);
-    } else {
-      ctx.rect(x, y, size, size);   // Safari < 16
-    }
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
     ctx.fillStyle = card;
     ctx.fill();
+
     ctx.save();
     ctx.clip();
-
-    // Put the fingertip at the middle of the window, magnified.
-    ctx.translate(x + size / 2, y + size / 2);
+    // Put the fingertip at the middle of the glass, magnified.
+    ctx.translate(cx, cy);
     ctx.scale(LOUPE_ZOOM, LOUPE_ZOOM);
     ctx.translate(-tip.x, -tip.y);
     this._scene(ctx, guide, inkc, 0.55);
@@ -221,7 +223,7 @@
     // Crosshair marking the exact point being scored.
     ctx.strokeStyle = rule;
     ctx.lineWidth = 1;
-    var cx = x + size / 2, cy = y + size / 2, arm = 7;
+    var arm = 7;
     ctx.beginPath();
     ctx.moveTo(cx - arm, cy); ctx.lineTo(cx - 2, cy);
     ctx.moveTo(cx + 2, cy); ctx.lineTo(cx + arm, cy);
@@ -229,14 +231,10 @@
     ctx.moveTo(cx, cy + 2); ctx.lineTo(cx, cy + arm);
     ctx.stroke();
 
-    // Border. Re-traced rather than reusing the clip path: the crosshair above
+    // Rim. Re-traced rather than reusing the clip path: the crosshair above
     // replaced the current path, and restore() does not bring paths back.
     ctx.beginPath();
-    if (ctx.roundRect) {
-      ctx.roundRect(x + 0.5, y + 0.5, size - 1, size - 1, r);
-    } else {
-      ctx.rect(x + 0.5, y + 0.5, size - 1, size - 1);
-    }
+    ctx.arc(cx, cy, rad - 0.5, 0, Math.PI * 2);
     ctx.strokeStyle = rule;
     ctx.lineWidth = 1;
     ctx.stroke();
