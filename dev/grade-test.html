@@ -33,7 +33,7 @@
 <pre id="out">…</pre>
 
 <div class="row">
-  <button id="sweep">Run full sweep (all 72 levels, ~40s)</button>
+  <button id="sweep">Run full sweep (every level, ~60s)</button>
   <span class="quiet">justifies the scoring constants and the pass marks</span>
 </div>
 <pre id="sweepout" hidden></pre>
@@ -49,11 +49,11 @@
 <canvas id="pad"></canvas>
 <div class="row"><span id="live">draw on the card, then Score</span></div>
 
-<script src="../data/signatures.js"></script>
-<script src="../js/geom.js"></script>
-<script src="../js/ink.js"></script>
-<script src="../js/grade.js"></script>
-<script src="../js/pad.js"></script>
+<script src="../docs/data/signatures.js"></script>
+<script src="../docs/js/geom.js"></script>
+<script src="../docs/js/ink.js"></script>
+<script src="../docs/js/grade.js"></script>
+<script src="../docs/js/pad.js"></script>
 <script>
 (function () {
   'use strict';
@@ -144,16 +144,42 @@
     return out;
   }
 
+  // Walk a path at a fixed spatial interval. Without this, generators that emit
+  // a point per *stored* point produce wildly different attempts depending on
+  // how finely a given signature was traced - the overscribble below came out
+  // at twice the signature's length on Warhol and seven times on van Gogh, so
+  // it was testing two different things under one name.
+  function resample(pts, step) {
+    if (pts.length < 2) return pts.slice();
+    var out = [pts[0]], carry = 0;
+    for (var i = 1; i < pts.length; i++) {
+      var a = pts[i - 1], b = pts[i];
+      var dx = b.x - a.x, dy = b.y - a.y;
+      var seg = Math.hypot(dx, dy);
+      if (seg <= 0) continue;
+      var t = 0;
+      while (carry + (seg - t) >= step) {
+        t += step - carry;
+        out.push({ x: a.x + dx * (t / seg), y: a.y + dy * (t / seg) });
+        carry = 0;
+      }
+      carry += seg - t;
+    }
+    return out;
+  }
+
   // One continuous scrawl that follows the signature's overall path but pays no
   // attention to its shape - the other way people try to game a tracing game.
-  function overscribble(level, amplitude) {
+  // Wavelength and amplitude are both in pen widths, so it means the same thing
+  // on a hairline as on a broad nib.
+  function overscribble(level, ampPens) {
+    var step = Math.max(4, level.pen * 1.5);
+    var amp = level.pen * ampPens;
     return SG.geom.contours(level).map(function (pts) {
-      var out = [];
-      for (var i = 0; i < pts.length; i++) {
-        var p = pts[i];
-        var swing = (i % 2 ? 1 : -1) * level.h * amplitude;
-        out.push({ x: p.x, y: p.y + swing });
-        out.push({ x: p.x, y: p.y - swing });
+      var walked = resample(pts, step), out = [];
+      for (var i = 0; i < walked.length; i++) {
+        var p = walked[i];
+        out.push({ x: p.x, y: p.y + (i % 2 ? amp : -amp) });
       }
       return out;
     });
@@ -267,7 +293,7 @@
     var rZig24 = SG.grade.score(lv, zigzag(lv, 24));
     var rVz14  = SG.grade.score(lv, vzigzag(lv, 14));
     var rVz20  = SG.grade.score(lv, vzigzag(lv, 20));
-    var rOver  = SG.grade.score(lv, overscribble(lv, 0.05));
+    var rOver  = SG.grade.score(lv, overscribble(lv, 2.5));
     var rScrib = SG.grade.score(lv, scribble(lv, 6, 23));
     var rEmpty = SG.grade.score(lv, []);
 
@@ -377,7 +403,7 @@
        ['zig24', zigzag(lv, 24)], ['zig40', zigzag(lv, 40)],
        ['vzig8', vzigzag(lv, 8)], ['vzig14', vzigzag(lv, 14)],
        ['vzig20', vzigzag(lv, 20)], ['vzig30', vzigzag(lv, 30)],
-       ['over.05', overscribble(lv, 0.05)], ['over.12', overscribble(lv, 0.12)]
+       ['over.05', overscribble(lv, 2.5)], ['over.12', overscribble(lv, 5)]
       ].forEach(function (c) {
         trials++;
         var a = SG.grade.score(lv, c[1]).accuracy;
@@ -451,10 +477,11 @@
     var ms = (performance.now() - t0).toFixed(0);
     document.getElementById('live').textContent =
       'accuracy ' + r.accuracy + '%  precision ' + r.precision +
-      '%  coverage ' + r.coverage + '%  · need ' + pad.level['pass'] +
-      '% · ' + ms + 'ms';
+      '%  coverage ' + r.coverage + '%  Â· need ' + pad.level['pass'] +
+      '% Â· ' + ms + 'ms';
   };
 })();
 </script>
 </body>
 </html>
+

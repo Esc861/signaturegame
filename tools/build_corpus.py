@@ -6,8 +6,8 @@ Sources deceased public figures with SVG signatures from Wikidata, downloads
 the artwork from Wikimedia Commons, flattens it to plain polylines, scores each
 signature's complexity, and writes:
 
-    data/signatures.js    the corpus the game loads (one global assignment)
-    tools/preview.html    a QA contact sheet for eyeballing the results
+    docs/data/signatures.js   the corpus the game loads (one global assignment)
+    tools/preview.html        a QA contact sheet for eyeballing the results
 
 Standard library only, and everything network-touching is cached under
 tools/.cache, so re-runs are fast and offline.
@@ -29,17 +29,23 @@ import sources
 import svgpath
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# The shipped game lives in docs/ so GitHub Pages can serve it straight from the
+# repo without a workflow -- root and docs/ are the only two folders it offers.
+APP = os.path.join(ROOT, "docs")
 
 BOX = 1000.0          # normalized long side
 RDP_EPS = 1.1         # simplification tolerance, in BOX units
-PER_THEME = 12        # levels per track
-TRY_PER_THEME = 34    # candidates to attempt, to survive conversion failures
+PER_THEME = 16        # levels per track
+TRY_PER_THEME = 60    # candidates to attempt, to survive conversion failures
 RASTER_PX = 360       # resolution used to measure rendered ink
 HOLLOW_PX = 900       # higher res, so hairlines stay connected when flooding
 # Deliberately loose. Loopy-but-solid signatures reach 1.5-2.1 (Armstrong,
 # Gauss, Leonov), so only a clear outlier means outline art. Anything hollow
 # that slips past this goes in sources.BLACKLIST after a look at the sheets.
 MAX_ENCLOSED = 2.5
+# Largest inscribed disc allowed, as a fraction of the long side. A radius of
+# 5% means a blob a tenth of the signature across, which no pen makes.
+MAX_BLOB = 0.05
 
 
 # --------------------------------------------------------------------------
@@ -123,6 +129,21 @@ def convert(svg_text):
     else:
         stroke_w = ink_area / perim
 
+    # A fine hand is harder to trace accurately than a broad one: the target is
+    # narrower, so the same wobble of the finger costs far more. This is the
+    # single biggest thing the shape-only metrics were missing.
+    m["fineness"] = 1.0 / max(stroke_w, 0.5)
+
+    # Crude traces collapse letterforms into filled blobs. The giveaway is the
+    # largest disc that fits inside the ink: a pen of any width draws a ribbon,
+    # so the disc is about half the nib, while a collapsed bowl swallows a disc
+    # many times that. Measured absolutely rather than against the mean width,
+    # because the ratio ranks honest hands (Amundsen's period ink blot, 14x)
+    # above the bad traces, whereas the absolute size separates them cleanly.
+    fattest = raster.fattest_point(cov, RW, RH) / rscale
+    if fattest > MAX_BLOB * BOX:
+        raise Rejected("blobby trace (fits a disc %.0f units across)" % (2 * fattest))
+
     enclosed = 0.0
     if kind == "outline":
         if solidity > 0.42:
@@ -169,13 +190,19 @@ def years(person):
 
 # Ranked as percentiles across the whole corpus, then combined. Absolute values
 # are meaningless on their own -- only how a signature compares to the others.
+#
+# Fineness carries real weight because difficulty here is not only about the
+# shape: van Gogh's broad, blunt hand is forgiving no matter how it loops, while
+# Curie's hairline punishes a millimetre. Judging on shape alone put fat, showy
+# signatures above fine, plain ones that are markedly harder to trace.
 WEIGHTS = {
-    "ink_ratio": 0.32,   # pen travel packed into the space
-    "turning":   0.20,   # curliness
-    "tangle":    0.18,   # how many strokes a horizontal line crosses
-    "corners":   0.14,   # abrupt direction changes
-    "contours":  0.10,   # pen lifts and counters
-    "aspect":    0.06,   # awkward proportions
+    "ink_ratio": 0.26,   # pen travel packed into the space
+    "fineness":  0.22,   # how narrow the pen is
+    "turning":   0.16,   # curliness
+    "tangle":    0.14,   # how many strokes a horizontal line crosses
+    "corners":   0.12,   # abrupt direction changes
+    "contours":  0.06,   # pen lifts and counters
+    "aspect":    0.04,   # awkward proportions
 }
 
 
@@ -240,11 +267,23 @@ def gather(args):
     for p in people.values():
         if p["name"] in sources.EXCLUDE_NAMES:
             continue
-        theme = sources.assign_theme(p["occupations"], p["qid"])
+        theme = sources.assign_theme(p["occupations"], p["name"])
         if theme:
             by_theme[theme].append(p)
+
+    # Fame first, but the hand-picked signatures jump the queue: sitelinks
+    # measure how well known the person is, not how well known their signature
+    # is, and for a few the two come apart badly.
     for rows in by_theme.values():
-        rows.sort(key=lambda r: -r["sitelinks"])
+        rows.sort(key=lambda r: (r["name"] not in sources.PRIORITY, -r["sitelinks"]))
+
+    missing = sources.unmatched_overrides()
+    if missing:
+        print("  note: theme overrides matched nobody: %s" % ", ".join(missing))
+    absent = sorted(sources.PRIORITY - {p["name"] for p in people.values()})
+    if absent:
+        print("  note: wanted but not in the pool (no SVG signature on Wikidata): %s"
+              % ", ".join(absent))
 
     print("\nConverting artwork...")
     kept = {}
@@ -278,8 +317,29 @@ def gather(args):
     return kept
 
 
+def level_up(kept, args):
+    """Trim every track to the same, even number of levels.
+
+    Tracks draw from pools of very different sizes - there are far more
+    politicians with a signature on file than mountaineers - so without this the
+    counts come out ragged, and a track that happened to convert badly would be
+    visibly short. Entries are still in fame order here, so trimming from the
+    end drops the least famous.
+    """
+    counts = {tid: len(rows) for tid, rows in kept.items()}
+    n = min(counts.values())
+    n -= n % 2                      # an even number reads better on the cards
+    if n < args.per_theme:
+        short = [t for t, c in counts.items() if c < args.per_theme]
+        print("  levelled to %d (wanted %d; short: %s)"
+              % (n, args.per_theme, ", ".join(sorted(short))))
+    for tid in kept:
+        del kept[tid][n:]
+    return kept
+
+
 def build(args):
-    kept = gather(args)
+    kept = level_up(gather(args), args)
 
     flat = [e for rows in kept.values() for e in rows]
     if not flat:
@@ -301,6 +361,9 @@ def build(args):
                 "id": p["qid"],
                 "name": p["name"],
                 "years": years(p),
+                # English Wikipedia article, so a player can read about whoever
+                # they have just been tracing.
+                "wiki": p.get("wiki", ""),
                 "difficulty": e["difficulty"],
                 "pass": pass_mark(e["difficulty"]),
                 "w": round(e["w"], 1),
@@ -338,13 +401,17 @@ def build(args):
         "themes": themes_out,
     }
 
+    nowiki = [lv["name"] for t in themes_out for lv in t["levels"] if not lv["wiki"]]
+    if nowiki:
+        print("  note: no English Wikipedia article for: %s" % ", ".join(nowiki))
+
     write_corpus(corpus)
     write_preview(corpus, kept)
     return 0
 
 
 def write_corpus(corpus):
-    path = os.path.join(ROOT, "data", "signatures.js")
+    path = os.path.join(APP, "data", "signatures.js")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     # ensure_ascii so the file is byte-identical regardless of how the browser
     # guesses the encoding -- it is loaded over file:// as often as over http.
@@ -354,7 +421,7 @@ def write_corpus(corpus):
         f.write(body)
         f.write(";\n")
     n = sum(len(t["levels"]) for t in corpus["themes"])
-    print("\nWrote data/signatures.js  (%d levels, %.0f KB)"
+    print("\nWrote docs/data/signatures.js  (%d levels, %.0f KB)"
           % (n, os.path.getsize(path) / 1024.0))
 
 

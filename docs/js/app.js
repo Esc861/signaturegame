@@ -25,6 +25,12 @@
   /* -------------------------------------------------------------- home */
 
   function renderHome() {
+    // Counted from the corpus rather than written into the copy, which went
+    // stale the moment the tracks grew.
+    var total = DATA.themes.reduce(function (n, t) { return n + t.levels.length; }, 0);
+    $('lede').textContent = total + ' signatures across ' + DATA.themes.length
+      + ' collections. Each one you master unlocks a harder hand.';
+
     var wrap = $('tracks');
     wrap.textContent = '';
     DATA.themes.forEach(function (theme) {
@@ -189,6 +195,15 @@
     $('res-cov').textContent = res.coverage + '%';
     $('res-econ').textContent = res.economy + '%';
 
+    var wiki = $('res-wiki');
+    if (lv.wiki) {
+      wiki.href = lv.wiki;
+      wiki.textContent = 'Read about ' + lv.name + ' →';
+      wiki.parentNode.hidden = false;
+    } else {
+      wiki.parentNode.hidden = true;
+    }
+
     var last = current.index >= current.theme.levels.length - 1;
     var next = $('btn-next');
     next.textContent = passed ? (last ? 'Back to collection' : 'Next signature')
@@ -236,7 +251,15 @@
     DATA.themes.forEach(function (theme) {
       theme.levels.forEach(function (lv) {
         var li = document.createElement('li');
-        li.appendChild(el('b', null, lv.name));
+        if (lv.wiki) {
+          var w = el('a', 'who', lv.name);
+          w.href = lv.wiki;
+          w.target = '_blank';
+          w.rel = 'noopener noreferrer';
+          li.appendChild(w);
+        } else {
+          li.appendChild(el('b', null, lv.name));
+        }
         li.appendChild(document.createTextNode(' — ' + lv.credit.license
           + ', ' + lv.credit.author + '. '));
         if (lv.credit.url) {

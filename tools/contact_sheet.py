@@ -96,7 +96,7 @@ def build_sheet(levels, path):
 
 
 def load_corpus():
-    with open(os.path.join(ROOT, "data", "signatures.js"), "r", encoding="utf-8") as f:
+    with open(os.path.join(ROOT, "docs", "data", "signatures.js"), "r", encoding="utf-8") as f:
         text = f.read().strip()
     return json.loads(re.sub(r"^window\.SIGNATURES=", "", text).rstrip(";"))
 

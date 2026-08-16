@@ -5,11 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <meta name="theme-color" content="#f4efe4">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="description" content="Learn to forge the signatures of history, one flourish at a time.">
-<title>The Forger's Archive</title>
+<meta name="description" content="Trace the signatures of history, one flourish at a time.">
+<title>Historic Ink</title>
+<meta name="apple-mobile-web-app-title" content="Historic Ink">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="css/wordmark.css">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -19,9 +21,8 @@
   <section class="screen" id="screen-home">
     <header class="masthead">
       <p class="eyebrow">Trace the hands of history</p>
-      <h1>The Forger&rsquo;s<br>Archive</h1>
-      <p class="lede">Six collections. Seventy-two signatures.
-        Each one you master unlocks a harder hand.</p>
+      <h1>Historic<br>Ink</h1>
+      <p class="lede" id="lede"></p>
     </header>
     <div class="tracks" id="tracks"></div>
     <footer class="colophon">
@@ -77,6 +78,8 @@
         </ul>
         <p class="legend"><i class="sw-good"></i> close
           <i class="sw-mid"></i> drifting <i class="sw-bad"></i> off the line</p>
+        <p class="readmore"><a id="res-wiki" href="#" target="_blank"
+           rel="noopener noreferrer"></a></p>
         <div class="sheet-tools">
           <button id="btn-again" class="tool">Try again</button>
           <button id="btn-next" class="tool primary">Next</button>
@@ -92,13 +95,14 @@
       <div class="bar-title"><h2>About &amp; credits</h2></div>
     </header>
     <div class="prose">
-      <p>Every signature here belongs to someone long dead, and none of them
-         authorises anything today. This is a game about steady hands and the
-         strange beauty of other people's handwriting.</p>
+      <p>Every signature here belongs to someone no longer living. This is a
+         game about steady hands and the strange beauty of other people's
+         handwriting.</p>
       <p>The artwork comes from Wikimedia Commons, found by asking Wikidata
          which historical figures have a signature on file. Difficulty is
-         measured from the shape itself &mdash; how much pen travel is packed
-         into the space, how much it turns, how tangled it is.</p>
+         measured from the signature itself &mdash; how much pen travel is
+         packed into the space, how much it turns, how tangled it is, and how
+         fine the pen was. A broad nib forgives a wobble; a hairline does not.</p>
       <p class="quiet">Progress is stored on this device only.</p>
       <button class="tool danger" id="btn-reset">Erase my progress</button>
       <h3>Sources</h3>

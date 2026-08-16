@@ -1,6 +1,6 @@
 {
-  "name": "The Forger's Archive",
-  "short_name": "Forger",
+  "name": "Historic Ink",
+  "short_name": "Historic Ink",
   "description": "Trace the signatures of history, one flourish at a time.",
   "start_url": "./index.html",
   "scope": "./",

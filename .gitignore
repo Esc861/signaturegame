@@ -8,3 +8,5 @@ tools/.cache/
 tools/sheet_*.png
 tools/preview.html
 tools/zoom.png
+
+dev/_fontcheck/

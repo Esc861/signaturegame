@@ -8,7 +8,10 @@
 (function (SG) {
   'use strict';
 
-  var KEY = 'signature-forger/v1';
+  // Deliberately not migrated from the old 'signature-forger/v1' key. The
+  // difficulty weighting changed, which reordered every track, so old scores
+  // would be attached to levels that have moved.
+  var KEY = 'historic-ink/v1';
   var state = null;
 
   function blank() {

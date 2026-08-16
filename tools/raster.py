@@ -113,6 +113,61 @@ def shapes_to_contours(shapes):
     return [s["points"] for s in shapes]
 
 
+def _distance_inside(cov, W, H):
+    """Chamfer distance from each ink pixel to the nearest background pixel.
+
+    Two passes, 3-4 neighbourhood. The ~2% error against true Euclidean is
+    irrelevant here - the result feeds a ratio, not a measurement.
+    """
+    INF = 1e9
+    d = [0.0] * (W * H)
+    for i in range(W * H):
+        d[i] = INF if cov[i] else 0.0
+
+    D1, D2 = 1.0, 1.41421356
+    for y in range(H):
+        base = y * W
+        for x in range(W):
+            k = base + x
+            v = d[k]
+            if v == 0.0:
+                continue
+            if x > 0 and d[k - 1] + D1 < v: v = d[k - 1] + D1
+            if y > 0:
+                if d[k - W] + D1 < v: v = d[k - W] + D1
+                if x > 0 and d[k - W - 1] + D2 < v: v = d[k - W - 1] + D2
+                if x < W - 1 and d[k - W + 1] + D2 < v: v = d[k - W + 1] + D2
+            d[k] = v
+    for y in range(H - 1, -1, -1):
+        base = y * W
+        for x in range(W - 1, -1, -1):
+            k = base + x
+            v = d[k]
+            if v == 0.0:
+                continue
+            if x < W - 1 and d[k + 1] + D1 < v: v = d[k + 1] + D1
+            if y < H - 1:
+                if d[k + W] + D1 < v: v = d[k + W] + D1
+                if x < W - 1 and d[k + W + 1] + D2 < v: v = d[k + W + 1] + D2
+                if x > 0 and d[k + W - 1] + D2 < v: v = d[k + W - 1] + D2
+            d[k] = v
+    return d
+
+
+def fattest_point(cov, W, H):
+    """Radius of the largest disc that fits inside the ink, in pixels.
+
+    Compared against the signature's average half-width, this is what separates
+    a broad pen from a botched trace. A pen of any width draws a ribbon, so the
+    biggest disc that fits inside it is about half the nib; when a trace
+    collapses a letterform into a filled blob, the disc that fits is far larger.
+    Neither stroke width nor contour roundness distinguishes those two cases -
+    both rank honest broad hands like Rembrandt's above the bad traces.
+    """
+    d = _distance_inside(cov, W, H)
+    return max(d) if d else 0.0
+
+
 def enclosed_ratio(cov, W, H):
     """Area of enclosed background over area of ink.
 

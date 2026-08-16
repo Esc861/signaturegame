@@ -15,6 +15,14 @@
   var MARGIN_FRAC = 0.07;   // breathing room around the signature
   var MIN_STEP = 1.2;       // px between recorded points, to drop jitter
 
+  // The loupe: a magnified window on whatever is under the fingertip, shown
+  // while drawing. A finger covers the very thing it is trying to trace, which
+  // is the whole difficulty of the game on a phone rather than a desk.
+  var LOUPE = 0.30;         // side, as a fraction of the pad's short edge
+  var LOUPE_MAX = 132;      // ...but never bigger than this, in CSS px
+  var LOUPE_ZOOM = 2.6;
+  var LOUPE_PAD = 10;       // inset from the pad's corner
+
   function Pad(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
@@ -42,6 +50,7 @@
       try { c.setPointerCapture(e.pointerId); } catch (err) { /* not fatal */ }
       self.strokes.push([]);
       self._add(e);
+      self.draw();          // so the loupe is up before the finger moves
     });
 
     c.addEventListener('pointermove', function (e) {
@@ -60,6 +69,7 @@
     function end(e) {
       if (self._pointer !== e.pointerId) return;
       self._pointer = null;
+      self._tip = null;
       try { c.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
       var last = self.strokes[self.strokes.length - 1];
       if (last && !last.length) self.strokes.pop();
@@ -73,6 +83,9 @@
   Pad.prototype._add = function (e) {
     var r = this.canvas.getBoundingClientRect();
     var vx = e.clientX - r.left, vy = e.clientY - r.top;
+    // Kept in view space for the loupe, and updated even when the point itself
+    // is dropped as jitter, so the magnifier tracks smoothly.
+    this._tip = { x: vx, y: vy };
     var stroke = this.strokes[this.strokes.length - 1];
     if (!stroke) return;
     if (stroke.length) {
@@ -150,12 +163,84 @@
     if (!level) return;
 
     var style = getComputedStyle(this.canvas);
+    var guide = style.getPropertyValue('--guide').trim() || '#d9cfba';
+    var inkc = style.getPropertyValue('--ink').trim() || '#2b2118';
+    var card = style.getPropertyValue('--card').trim() || '#fffdf7';
+    var rule = style.getPropertyValue('--rule').trim() || '#cbbfa8';
+
+    this._scene(ctx, guide, inkc);
+    if (this._tip) this._loupe(ctx, guide, inkc, card, rule);
+  };
+
+  /* Everything that lives on the card, at a given transform. Factored out so
+     the loupe magnifies exactly what the pad draws rather than a lookalike.
+     `inkAlpha` fades the player's own line inside the loupe: the point of
+     magnifying is to see the guide their finger is covering, and at full
+     strength their stroke simply hides it again. */
+  Pad.prototype._scene = function (ctx, guide, inkc, inkAlpha) {
     if (this.showGuide) {
-      ink.paintSignature(ctx, level, this._fit,
-                         style.getPropertyValue('--guide').trim() || '#d9cfba');
+      ink.paintSignature(ctx, this.level, this._fit, guide);
     }
-    ink.paintStrokes(ctx, this.strokes, level.pen, this._fit,
-                     style.getPropertyValue('--ink').trim() || '#2b2118');
+    if (inkAlpha != null) ctx.globalAlpha = inkAlpha;
+    ink.paintStrokes(ctx, this.strokes, this.level.pen, this._fit, inkc);
+    ctx.globalAlpha = 1;
+  };
+
+  Pad.prototype._loupe = function (ctx, guide, inkc, card, rule) {
+    var w = this._css.w, h = this._css.h;
+    var size = Math.min(LOUPE * Math.min(w, h), LOUPE_MAX);
+    var tip = this._tip;
+
+    // Sit in whichever top corner the hand is further from, and drop to the
+    // bottom if the fingertip is up in the corners already.
+    var left = tip.x > w / 2;
+    var x = left ? LOUPE_PAD : w - size - LOUPE_PAD;
+    var y = LOUPE_PAD;
+    if (tip.y < size + LOUPE_PAD * 3) y = h - size - LOUPE_PAD;
+
+    var r = 10;
+    ctx.save();
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(x, y, size, size, r);
+    } else {
+      ctx.rect(x, y, size, size);   // Safari < 16
+    }
+    ctx.fillStyle = card;
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+
+    // Put the fingertip at the middle of the window, magnified.
+    ctx.translate(x + size / 2, y + size / 2);
+    ctx.scale(LOUPE_ZOOM, LOUPE_ZOOM);
+    ctx.translate(-tip.x, -tip.y);
+    this._scene(ctx, guide, inkc, 0.55);
+    ctx.restore();
+
+    // Crosshair marking the exact point being scored.
+    ctx.strokeStyle = rule;
+    ctx.lineWidth = 1;
+    var cx = x + size / 2, cy = y + size / 2, arm = 7;
+    ctx.beginPath();
+    ctx.moveTo(cx - arm, cy); ctx.lineTo(cx - 2, cy);
+    ctx.moveTo(cx + 2, cy); ctx.lineTo(cx + arm, cy);
+    ctx.moveTo(cx, cy - arm); ctx.lineTo(cx, cy - 2);
+    ctx.moveTo(cx, cy + 2); ctx.lineTo(cx, cy + arm);
+    ctx.stroke();
+
+    // Border. Re-traced rather than reusing the clip path: the crosshair above
+    // replaced the current path, and restore() does not bring paths back.
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(x + 0.5, y + 0.5, size - 1, size - 1, r);
+    } else {
+      ctx.rect(x + 0.5, y + 0.5, size - 1, size - 1);
+    }
+    ctx.strokeStyle = rule;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
   };
 
   SG.Pad = Pad;

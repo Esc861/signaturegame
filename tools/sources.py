@@ -92,7 +92,7 @@ def wdqs(query):
 
 
 _CANDIDATE_QUERY = """
-SELECT ?p ?pLabel ?sig ?sitelinks ?dob ?dod ?occ WHERE {
+SELECT ?p ?pLabel ?sig ?sitelinks ?dob ?dod ?occ ?article WHERE {
   ?p wdt:P109 ?sig ;
      wikibase:sitelinks ?sitelinks ;
      wdt:P570 ?dod .
@@ -100,6 +100,10 @@ SELECT ?p ?pLabel ?sig ?sitelinks ?dob ?dod ?occ WHERE {
   FILTER(STRENDS(STR(?sig), ".svg"))
   OPTIONAL { ?p wdt:P569 ?dob }
   OPTIONAL { ?p wdt:P106 ?occ }
+  OPTIONAL {
+    ?article schema:about ?p ;
+             schema:isPartOf <https://en.wikipedia.org/> .
+  }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en,de,fr,es,it". }
 }
 """
@@ -148,11 +152,16 @@ def fetch_candidates(verbose=True):
                     "sitelinks": int(r["sitelinks"]["value"]),
                     "born": _year(r.get("dob", {}).get("value")),
                     "died": _year(r.get("dod", {}).get("value")),
+                    "wiki": r.get("article", {}).get("value", ""),
                     "occupations": set(),
                 }
             occ = r.get("occ", {}).get("value")
             if occ:
                 rec["occupations"].add(occ.rsplit("/", 1)[-1])
+            # The article only appears on some of a person's rows, since the
+            # optional joins multiply out against occupations.
+            if not rec["wiki"]:
+                rec["wiki"] = r.get("article", {}).get("value", "")
     return people
 
 
@@ -370,16 +379,60 @@ def occupation_index(verbose=True):
 # polymaths carry so many occupations in one field that scoring sends them
 # somewhere a player would find odd. These are the ones famous enough to
 # actually reach a track, so they are worth pinning by hand.
+#
+# Keyed by label rather than Q-id: it is the difference between a line you can
+# check by reading it and one you have to look up. build_corpus reports any
+# entry here that matched nobody, so a renamed label surfaces instead of
+# silently doing nothing.
 THEME_OVERRIDES = {
-    "Q5879":  "letters",     # Goethe - carries a dozen naturalist occupations
-    "Q9554":  "letters",     # Martin Luther - scored into arts as a hymnodist
-    "Q9358":  "letters",     # Nietzsche - likewise, as a composer
-    "Q9312":  "letters",     # Kant - astronomer occupation outweighed him
-    "Q9191":  "letters",     # Descartes - mathematician, but known as a thinker
-    "Q935":   "science",     # Newton - "natural philosopher" reads as letters
-    "Q762":   "arts",        # Leonardo da Vinci - scored into science
-    "Q1001":  "statesmen",   # Gandhi
-    "Q11812": "statesmen",   # Jefferson - inventor occupation outweighed him
+    # "writer" is Wikidata's great catch-all - it lands on anyone who published
+    # anything, including memoirs - so it drags explorers and presidents into
+    # the letters track.
+    "Amelia Earhart":            "frontier",
+    "Theodore Roosevelt":        "statesmen",
+    # Reagan really does score into Stage & Screen off nearly thirty years of
+    # screen credits, but a player reads that as the classifier being broken.
+    "Ronald Reagan":             "statesmen",
+    "Alexander Hamilton":        "statesmen",
+    "Benjamin Franklin":         "science",    # inventor first, to a player
+    "Frederick Douglass":        "statesmen",
+    # Churchill would belong here too, but Wikidata has no SVG of his hand.
+
+    "Johann Wolfgang von Goethe": "letters",   # a dozen naturalist occupations
+    "Martin Luther":              "letters",   # scored into arts as a hymnodist
+    "Friedrich Nietzsche":        "letters",   # likewise, as a composer
+    "Immanuel Kant":              "letters",   # astronomer occupation outweighed him
+    "René Descartes":             "letters",   # mathematician, known as a thinker
+    "Isaac Newton":               "science",   # "natural philosopher" reads as letters
+    "Leonardo da Vinci":          "arts",      # scored into science
+    "Mahatma Gandhi":             "statesmen",
+    "Thomas Jefferson":           "statesmen", # inventor occupation outweighed him
+}
+
+# Signatures too well known to leave to a popularity ranking. Sitelinks measure
+# how famous the *person* is, which is not the same as how famous their hand is:
+# John Hancock's is the most recognisable signature in the English-speaking
+# world and his 47 sitelinks had him nowhere near the cut. These are pulled to
+# the front of their track's queue; they still have to convert cleanly.
+PRIORITY = {
+    "John Hancock",
+    "Amelia Earhart",
+    "Benjamin Franklin",
+    "Ernest Shackleton",
+    "Harry Houdini",
+    "Alan Turing",
+    "Ada Lovelace",
+    "Jane Austen",
+    "Edgar Allan Poe",
+    "Oscar Wilde",
+    "Claude Monet",
+    "Audrey Hepburn",
+    "Susan B. Anthony",
+    "Frederick Douglass",
+    "John Adams",
+    "Alexander Hamilton",
+    "Theodore Roosevelt",
+    "Ernest Hemingway",
 }
 
 # Commons file titles that convert badly in ways the automated checks in
@@ -402,15 +455,19 @@ EXCLUDE_NAMES = {
 }
 
 
-def assign_theme(occupations, qid=None):
+_override_hits = set()
+
+
+def assign_theme(occupations, name=None):
     """Best-scoring theme for a set of occupation QIDs, or None.
 
     Scoring rather than first-match: people carry several occupations and the
     first one alphabetically or by QID says nothing about which they are known
     for. Weight of 3 for a specific occupation, 1 for a generic one.
     """
-    if qid and qid in THEME_OVERRIDES:
-        return THEME_OVERRIDES[qid]
+    if name and name in THEME_OVERRIDES:
+        _override_hits.add(name)
+        return THEME_OVERRIDES[name]
     index = occupation_index(verbose=False)
     scores = {}
     for occ in occupations:
@@ -421,3 +478,8 @@ def assign_theme(occupations, qid=None):
         return None
     order = {t["id"]: i for i, t in enumerate(THEMES)}
     return min(scores, key=lambda t: (-scores[t], order[t]))
+
+
+def unmatched_overrides():
+    """Override entries that matched nobody - a renamed label, most likely."""
+    return sorted(set(THEME_OVERRIDES) - _override_hits)

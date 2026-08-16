@@ -20,16 +20,14 @@
   --serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* The wordmark. No webfont: the game has to run from file:// and offline, so
-     anything fetched is out, and embedding one would cost more than the whole
-     rest of the app put together. Each platform picks the best handwriting face
-     it already ships - Snell Roundhand on Apple, Segoe Script on Windows.
-     Ordered to prefer faces that actually look written over formal calligraphic
-     ones: Gabriola is handsome but reads as a document, not a hand, which is
-     the wrong note for a game about other people's handwriting. */
-  --script: "Snell Roundhand", "Apple Chancery", "Segoe Script", "Bradley Hand",
-            "Brush Script MT", Gabriola, "Lucida Handwriting", "Ink Free",
-            cursive;
+  /* The wordmark. Pinyon Script is embedded by css/wordmark.css, subset to the
+     few characters it needs (19 KB) and inlined as a data URI so it survives
+     being opened straight from the filesystem, where a linked font file counts
+     as cross-origin and is refused. It is a 19th-century copperplate - the
+     actual hand of the documents these signatures came off - which no system
+     font gets near. The rest is insurance while it loads or if it fails. */
+  --script: "Pinyon Script", "Snell Roundhand", "Apple Chancery", "Segoe Script",
+            "Brush Script MT", Gabriola, "Lucida Handwriting", cursive;
 }
 
 * { box-sizing: border-box; }
@@ -78,13 +76,13 @@ body {
 .masthead h1 {
   margin: 0;
   font-family: var(--script);
-  /* Handwriting faces carry tall ascenders and deep descenders, so this needs
-     more room than the serif did, and a touch of negative tracking to stop the
-     letters drifting apart at display size. */
-  font-size: clamp(44px, 14vw, 66px);
-  font-weight: 600;
-  line-height: 1.12;
-  letter-spacing: -.01em;
+  /* Copperplate carries tall ascenders and deep descenders inside its line box,
+     so the leading has to be pulled well under 1 to stop the two words drifting
+     apart. The swashes still clear each other at this setting. */
+  font-size: clamp(46px, 15vw, 70px);
+  font-weight: 400;
+  line-height: .82;
+  letter-spacing: 0;
   color: var(--ink);
 }
 .lede {
@@ -373,6 +371,10 @@ body {
 .sw-mid  { background: var(--mid); }
 .sw-bad  { background: var(--accent); }
 
+.readmore { margin: 10px 0 0; font-size: 13px; }
+.readmore a { color: var(--accent); text-decoration: none;
+              border-bottom: 1px solid rgba(140,47,34,.35); padding-bottom: 1px; }
+
 .sheet-tools { display: flex; gap: 8px; margin-top: 16px; }
 
 /* -------------------------------------------------------------- about */
@@ -389,8 +391,9 @@ body {
 }
 .credits { list-style: none; margin: 0; padding: 0; font-size: 11.5px; color: var(--muted); }
 .credits li { padding: 5px 0; border-bottom: 1px solid rgba(203,191,168,.45); }
-.credits b { color: var(--ink); font-weight: 600; }
+.credits b, .credits .who { color: var(--ink); font-weight: 600; }
 .credits a { color: var(--muted); }
+.credits .who { text-decoration: none; border-bottom: 1px solid var(--rule); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
