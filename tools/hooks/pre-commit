@@ -1,0 +1,19 @@
+#!/bin/sh
+# Keep the service worker's cache name and asset list in step with docs/.
+#
+# The cache name is a hash of the shipped files, so a change that reaches the
+# player also reaches their cache. Doing this by hand failed twice: a shipped
+# change went out under an unchanged version, and a new file was left out of the
+# offline list.
+#
+# Enable with:   git config core.hooksPath tools/hooks
+# Disable with:  git config --unset core.hooksPath
+# Skip once:     git commit --no-verify
+
+set -e
+
+# Nothing under docs/ staged means nothing the player sees has changed.
+if git diff --cached --name-only | grep -q '^docs/'; then
+  python tools/bump_cache.py || exit 1
+  git add docs/sw.js
+fi

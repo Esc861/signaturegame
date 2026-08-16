@@ -234,7 +234,17 @@ body {
 .screen-play.on { display: flex; flex-direction: column; min-height: 100dvh; }
 .bar-play { align-items: center; }
 
-.card-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.card-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* The card takes back most of the page gutter. A wider card is a bigger
+     signature, and a bigger signature is finer effective touch resolution --
+     the finger's error is fixed in screen terms while the score is measured in
+     signature units. The header and tools keep the normal gutter. */
+  margin: 0 -12px;
+}
 
 #pad {
   display: block;
@@ -248,6 +258,20 @@ body {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* The magnifier. Positioned from JS in viewport coordinates, which is why it is
+   fixed and anchored at the origin - the transform does all the moving. */
+#loupe {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 15;                 /* over the card, under the result sheet */
+  border-radius: 50%;
+  pointer-events: none;
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--rule), 0 6px 18px rgba(43, 33, 24, .22);
+  will-change: transform;
 }
 
 .hint {

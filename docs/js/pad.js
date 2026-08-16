@@ -12,7 +12,12 @@
 
   var geom = SG.geom, ink = SG.ink;
 
-  var MARGIN_FRAC = 0.07;   // breathing room around the signature
+  // Breathing room around the signature, as a fraction of the card's short
+  // edge. Kept tight on purpose: every pixel the signature gains is finer
+  // effective touch resolution, since a finger's error is fixed in screen terms
+  // while the score is measured in signature units. Not zero, because strokes
+  // that start hard against the edge are awkward to begin.
+  var MARGIN_FRAC = 0.03;
   var MIN_STEP = 1.2;       // px between recorded points, to drop jitter
 
   // The loupe: a magnified window on whatever is under the fingertip, shown
@@ -22,15 +27,23 @@
   // It rides just above the fingertip rather than sitting in a corner. A corner
   // loupe has to switch sides to stay out from under the hand, and that jump is
   // far more distracting than the thing it was avoiding.
+  //
+  // It lives in its own element floating over the page, not inside the pad's
+  // canvas. Drawn into the canvas it could never leave the card, so anywhere
+  // near the top of a short card there was no room above the finger and it had
+  // to flip underneath - which is the same distracting jump by another route,
+  // and it fired across most of the card's height. Over the page it has the
+  // header's worth of space to move into and effectively never flips.
   var LOUPE = 0.34;         // diameter, as a fraction of the pad's short edge
   var LOUPE_MAX = 124;      // ...but never bigger than this, in CSS px
   var LOUPE_ZOOM = 2.6;
-  var LOUPE_GAP = 20;       // clear air between fingertip and glass
-  var LOUPE_PAD = 6;        // keep it this far inside the card
+  var LOUPE_GAP = 22;       // clear air between fingertip and glass
+  var LOUPE_EDGE = 8;       // keep it this far inside the viewport
 
-  function Pad(canvas) {
+  function Pad(canvas, loupe) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+    this.loupe = loupe || null;
     this.level = null;
     this.strokes = [];
     this.showGuide = true;
@@ -174,7 +187,7 @@
     var rule = style.getPropertyValue('--rule').trim() || '#cbbfa8';
 
     this._scene(ctx, guide, inkc);
-    if (this._tip) this._loupe(ctx, guide, inkc, card, rule);
+    this._paintLoupe(guide, inkc, card, rule);
   };
 
   /* Everything that lives on the card, at a given transform. Factored out so
@@ -191,30 +204,33 @@
     ctx.globalAlpha = 1;
   };
 
-  Pad.prototype._loupe = function (ctx, guide, inkc, card, rule) {
-    var w = this._css.w, h = this._css.h;
-    var d = Math.min(LOUPE * Math.min(w, h), LOUPE_MAX);
-    var rad = d / 2;
+  Pad.prototype._paintLoupe = function (guide, inkc, card, rule) {
+    var el = this.loupe;
+    if (!el) return;
     var tip = this._tip;
+    if (!tip) { el.hidden = true; return; }
 
-    // Ride above the fingertip, and only drop below it when there is no room
-    // left overhead - near the top of the card, where the alternative is a
-    // glass half off the edge.
-    var cy = tip.y - LOUPE_GAP - rad;
-    if (cy - rad < LOUPE_PAD) cy = tip.y + LOUPE_GAP + rad;
-    cy = Math.max(rad + LOUPE_PAD, Math.min(h - rad - LOUPE_PAD, cy));
-    var cx = Math.max(rad + LOUPE_PAD, Math.min(w - rad - LOUPE_PAD, tip.x));
+    var d = Math.round(Math.min(LOUPE * Math.min(this._css.w, this._css.h),
+                                LOUPE_MAX));
+    var rad = d / 2;
+    var dpr = Math.min(window.devicePixelRatio || 1, 3);
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    if (el.width !== Math.round(d * dpr)) {
+      el.width = Math.round(d * dpr);
+      el.height = Math.round(d * dpr);
+      el.style.width = d + 'px';
+      el.style.height = d + 'px';
+    }
+
+    var ctx = el.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, d, d);
     ctx.fillStyle = card;
-    ctx.fill();
+    ctx.fillRect(0, 0, d, d);          // CSS rounds the element into a circle
 
     ctx.save();
-    ctx.clip();
     // Put the fingertip at the middle of the glass, magnified.
-    ctx.translate(cx, cy);
+    ctx.translate(rad, rad);
     ctx.scale(LOUPE_ZOOM, LOUPE_ZOOM);
     ctx.translate(-tip.x, -tip.y);
     this._scene(ctx, guide, inkc, 0.55);
@@ -225,20 +241,26 @@
     ctx.lineWidth = 1;
     var arm = 7;
     ctx.beginPath();
-    ctx.moveTo(cx - arm, cy); ctx.lineTo(cx - 2, cy);
-    ctx.moveTo(cx + 2, cy); ctx.lineTo(cx + arm, cy);
-    ctx.moveTo(cx, cy - arm); ctx.lineTo(cx, cy - 2);
-    ctx.moveTo(cx, cy + 2); ctx.lineTo(cx, cy + arm);
+    ctx.moveTo(rad - arm, rad); ctx.lineTo(rad - 2, rad);
+    ctx.moveTo(rad + 2, rad); ctx.lineTo(rad + arm, rad);
+    ctx.moveTo(rad, rad - arm); ctx.lineTo(rad, rad - 2);
+    ctx.moveTo(rad, rad + 2); ctx.lineTo(rad, rad + arm);
     ctx.stroke();
 
-    // Rim. Re-traced rather than reusing the clip path: the crosshair above
-    // replaced the current path, and restore() does not bring paths back.
-    ctx.beginPath();
-    ctx.arc(cx, cy, rad - 0.5, 0, Math.PI * 2);
-    ctx.strokeStyle = rule;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.restore();
+    // Always above the hand, never below: below it is under the finger again,
+    // which is the whole thing this is here to avoid. If the fingertip is high
+    // enough that there is no room left, the glass stops against the top of the
+    // viewport rather than jumping to the other side.
+    var r = this.canvas.getBoundingClientRect();
+    var left = r.left + tip.x - rad;
+    var top = r.top + tip.y - LOUPE_GAP - d;
+    left = Math.max(LOUPE_EDGE,
+                    Math.min(window.innerWidth - d - LOUPE_EDGE, left));
+    top = Math.max(LOUPE_EDGE, top);
+
+    el.style.transform = 'translate(' + Math.round(left) + 'px,'
+                       + Math.round(top) + 'px)';
+    el.hidden = false;
   };
 
   SG.Pad = Pad;

@@ -123,8 +123,8 @@
   function sizePad(level) {
     var c = $('pad');
     var w = c.getBoundingClientRect().width || c.parentNode.clientWidth;
-    var room = Math.round(window.innerHeight * 0.52);
-    c.style.height = cardHeight(level, w, 200, Math.max(220, room)) + 'px';
+    var room = Math.round(window.innerHeight * 0.56);
+    c.style.height = cardHeight(level, w, 190, Math.max(210, room)) + 'px';
   }
 
   function renderPlay(theme, index) {
@@ -148,7 +148,7 @@
 
     sizePad(lv);
     if (!pad) {
-      pad = new SG.Pad($('pad'));
+      pad = new SG.Pad($('pad'), $('loupe'));
       pad.onChange = syncTools;
     }
     pad.setLevel(lv);

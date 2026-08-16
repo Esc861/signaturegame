@@ -25,10 +25,21 @@ scripts hanging off a `window.SG` namespace instead of ES modules, and puts the
 wordmark typeface inline as a data URI rather than a linked font file.
 
 Served over HTTP it also registers a service worker, so it installs to a phone
-home screen and runs offline. That cache is cache-first, so **bump `CACHE` in
-`sw.js` whenever you change a shipped file** — otherwise returning players keep
-the old version. It deliberately does not register on localhost, because it
-would otherwise serve you stale code all afternoon.
+home screen and runs offline. It deliberately does not register on localhost,
+because it would otherwise serve you stale code all afternoon.
+
+The worker is cache-first, so a shipped change only reaches a returning player
+when the cache name changes. Both that name and the precached asset list are
+generated from the actual contents of `docs/` by `tools/bump_cache.py`, and the
+pre-commit hook runs it — doing either by hand had already failed twice, once
+shipping a change under an unchanged version and once leaving a new file out of
+the offline list.
+
+```sh
+git config core.hooksPath tools/hooks    # enable (once per clone)
+python tools/bump_cache.py               # or run it by hand
+python tools/bump_cache.py --check       # exit 1 if stale, for CI
+```
 
 ## Layout
 
@@ -62,10 +73,15 @@ their stroke simply hides it again.
 
 It rides with the finger rather than parking in a corner. A corner loupe has to
 switch sides to stay out from under the hand, and that jump turned out to be far
-more distracting than the problem it was solving. Near the top of the card,
-where there is no room overhead, the glass drops below the fingertip instead,
-and it clamps to stay inside the card at the edges — but it always shows the tip
-dead centre, so the crosshair means the same thing wherever the glass sits.
+more distracting than the problem it was solving.
+
+It is its own element floating over the page, not something drawn into the pad's
+canvas. Inside the canvas it could never leave the card, so anywhere near the top
+of a short card there was no room above the finger and it had to drop below —
+the same distracting jump by another route, firing across most of the card's
+height. Over the page it has the header's worth of room and stays above the hand
+always, which is the only place it is any use; if it ever does run out of room it
+stops against the top of the viewport rather than flipping.
 
 It renders through the same `_scene()` call as the pad itself, so it magnifies
 exactly what is on the card rather than a lookalike that could drift out of sync.

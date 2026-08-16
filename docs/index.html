@@ -57,6 +57,9 @@
       <canvas id="pad"></canvas>
       <p class="hint" id="play-hint">Trace the grey signature with your finger.</p>
     </div>
+    <!-- Floats over the page rather than living inside the pad, so it always
+         has room to sit above the fingertip. -->
+    <canvas id="loupe" hidden aria-hidden="true"></canvas>
 
     <nav class="tools">
       <button id="btn-undo" class="tool">Undo</button>
