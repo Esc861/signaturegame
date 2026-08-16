@@ -239,11 +239,11 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  /* The card takes back most of the page gutter. A wider card is a bigger
-     signature, and a bigger signature is finer effective touch resolution --
-     the finger's error is fixed in screen terms while the score is measured in
-     signature units. The header and tools keep the normal gutter. */
-  margin: 0 -12px;
+  /* The card deliberately does NOT bleed into the page gutter. It was tried,
+     for a wider drawing surface, and it put the pad's touch-action:none inside
+     the phone's edge-swipe zone, which broke the system back gesture. The
+     signature gets its extra room from the small margin inside the card
+     instead, where nothing else is competing for the pixels. */
 }
 
 #pad {
@@ -271,8 +271,14 @@ body {
   pointer-events: none;
   background: var(--card);
   box-shadow: 0 0 0 1px var(--rule), 0 6px 18px rgba(43, 33, 24, .22);
-  will-change: transform;
+  will-change: transform, opacity;
+  /* Fades in once the hand settles into detail work. Popping into existence
+     mid-stroke would be its own distraction. */
+  opacity: 0;
+  transform-origin: 50% 120%;
+  transition: opacity .16s ease-out;
 }
+#loupe.on { opacity: 1; }
 
 .hint {
   margin: 10px 2px 0;

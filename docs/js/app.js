@@ -372,5 +372,6 @@
     init();
   }
 
-  SG.app = { go: go };
+  // `pad` is exposed for debugging from the console; the app never reads it.
+  SG.app = { go: go, pad: function () { return pad; } };
 })(window.SG || (window.SG = {}));

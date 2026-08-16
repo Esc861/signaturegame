@@ -83,6 +83,22 @@ height. Over the page it has the header's worth of room and stays above the hand
 always, which is the only place it is any use; if it ever does run out of room it
 stops against the top of the viewport rather than flipping.
 
+It only shows up for detail work. Appearing on every stroke makes it scenery, and
+a long confident sweep does not need magnifying, so it waits for evidence that the
+hand has settled: roughly 850ms spent *moving slowly*, not merely 850ms with a
+finger down. Two speed thresholds rather than one give it hysteresis, so a hand
+hovering near the cutoff cannot flicker it. A pause counts as careful — the
+measured speed decays toward zero when no events arrive, because holding still to
+line something up is the most careful thing a hand does.
+
+That clock is a timer, not `requestAnimationFrame`. rAF is a paint clock, and a
+device throttling frames would then never decide the hand had settled; timing and
+drawing are different questions.
+
+The drawing card deliberately keeps the page's normal gutter. Bleeding it wider
+was tried and it put the pad's `touch-action: none` inside the phone's edge-swipe
+zone, which broke the system back gesture.
+
 It renders through the same `_scene()` call as the pad itself, so it magnifies
 exactly what is on the card rather than a lookalike that could drift out of sync.
 

@@ -40,6 +40,17 @@
   var LOUPE_GAP = 22;       // clear air between fingertip and glass
   var LOUPE_EDGE = 8;       // keep it this far inside the viewport
 
+  // It only earns its place during detail work. Appearing on every stroke makes
+  // it scenery, and a long confident sweep does not need magnifying - so it
+  // waits for evidence that the hand has settled into careful work: this much
+  // time spent moving slowly, not merely this much time with a finger down.
+  var LOUPE_DELAY = 850;    // ms of careful drawing before it appears
+  // Two thresholds rather than one, so a hand hovering around a single cutoff
+  // cannot flicker it on and off. Between them, whatever it was doing persists.
+  var LOUPE_SLOW = 150;     // px/s and below counts as careful
+  var LOUPE_FAST = 340;     // px/s and above cancels it
+  var SPEED_SMOOTH = 0.25;  // EMA weight on the newest speed sample
+
   function Pad(canvas, loupe) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
@@ -53,6 +64,12 @@
     this._fit = { scale: 1, ox: 0, oy: 0 };
     this._css = { w: 0, h: 0 };
     this._frame = 0;
+    this._tip = null;
+    this._speed = 0;        // px/s, smoothed
+    this._careful = 0;      // ms spent drawing slowly in this stroke
+    this._showLoupe = false;
+    this._mark = null;      // last position/time used for a speed sample
+    this._ticker = 0;
 
     this._bind();
     this.resize();
@@ -67,8 +84,13 @@
       self._pointer = e.pointerId;
       try { c.setPointerCapture(e.pointerId); } catch (err) { /* not fatal */ }
       self.strokes.push([]);
+      self._speed = 0;
+      self._careful = 0;
+      self._showLoupe = false;
+      self._mark = { x: e.clientX, y: e.clientY, t: now() };
       self._add(e);
-      self.draw();          // so the loupe is up before the finger moves
+      self._startTicker();
+      self.draw();
     });
 
     c.addEventListener('pointermove', function (e) {
@@ -81,6 +103,10 @@
       var events = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
       if (!events || !events.length) events = [e];
       for (var i = 0; i < events.length; i++) self._add(events[i]);
+      // Speed is sampled once per delivered event, not per coalesced point:
+      // the coalesced batch arrives with one timestamp, so timing it per point
+      // would divide a real distance by no time at all.
+      self._sampleSpeed(e.clientX, e.clientY);
       self.draw();
     });
 
@@ -88,6 +114,8 @@
       if (self._pointer !== e.pointerId) return;
       self._pointer = null;
       self._tip = null;
+      self._showLoupe = false;
+      self._stopTicker();
       try { c.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
       var last = self.strokes[self.strokes.length - 1];
       if (last && !last.length) self.strokes.pop();
@@ -116,6 +144,68 @@
 
   Pad.prototype._changed = function () {
     if (this.onChange) this.onChange(this);
+  };
+
+  function now() {
+    return (window.performance && performance.now) ? performance.now() : Date.now();
+  }
+
+  Pad.prototype._sampleSpeed = function (clientX, clientY) {
+    var t = now(), m = this._mark;
+    if (!m) { this._mark = { x: clientX, y: clientY, t: t }; return; }
+    var dt = t - m.t;
+    if (dt < 8) return;                      // too short to time reliably
+    var v = Math.hypot(clientX - m.x, clientY - m.y) / (dt / 1000);
+    this._speed += (v - this._speed) * SPEED_SMOOTH;
+    this._mark = { x: clientX, y: clientY, t: t };
+  };
+
+  var TICK = 50;            // ms between judgements of "is this detail work?"
+
+  /* While a stroke is down, keep judging whether it has become detail work.
+   *
+   * This runs on its own clock rather than off pointer events because a hand
+   * that has stopped to line something up emits no events at all, and holding
+   * still is the most careful thing a hand can do - it should bring the glass
+   * up, not stall it forever one sample short.
+   *
+   * On a timer rather than requestAnimationFrame, deliberately: rAF is a paint
+   * clock, and a device that is throttling frames would then never decide the
+   * hand had settled. Timing and drawing are different questions. Painting is
+   * still left to draw(), which coalesces onto rAF.
+   */
+  Pad.prototype._startTicker = function () {
+    var self = this;
+    if (this._ticker) return;
+    var last = now();
+    this._ticker = setInterval(function () {
+      if (self._pointer === null) { self._stopTicker(); return; }
+      var t = now(), dt = t - last;
+      last = t;
+
+      // No movement since the last sample means the pen is resting: decay the
+      // measured speed toward zero so a pause reads as careful, not as
+      // whatever it was doing before it stopped.
+      if (t - self._mark.t > 60) {
+        self._speed += (0 - self._speed) * SPEED_SMOOTH;
+      }
+
+      if (self._speed <= LOUPE_SLOW) self._careful += dt;
+      else if (self._speed >= LOUPE_FAST) self._careful = 0;
+
+      var want = self._careful >= LOUPE_DELAY;
+      if (want !== self._showLoupe) {
+        self._showLoupe = want;
+        self.draw();
+      } else if (want) {
+        self.draw();                          // keep the glass under the finger
+      }
+    }, TICK);
+  };
+
+  Pad.prototype._stopTicker = function () {
+    if (this._ticker) clearInterval(this._ticker);
+    this._ticker = 0;
   };
 
   Pad.prototype.setLevel = function (level) {
@@ -208,7 +298,7 @@
     var el = this.loupe;
     if (!el) return;
     var tip = this._tip;
-    if (!tip) { el.hidden = true; return; }
+    if (!tip || !this._showLoupe) { el.classList.remove('on'); return; }
 
     var d = Math.round(Math.min(LOUPE * Math.min(this._css.w, this._css.h),
                                 LOUPE_MAX));
@@ -261,6 +351,7 @@
     el.style.transform = 'translate(' + Math.round(left) + 'px,'
                        + Math.round(top) + 'px)';
     el.hidden = false;
+    el.classList.add('on');
   };
 
   SG.Pad = Pad;
