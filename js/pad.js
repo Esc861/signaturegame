@@ -1,0 +1,163 @@
+/* The drawing surface: a canvas the player traces on with a finger.
+ *
+ * Strokes are recorded in signature space, never in screen pixels, so a score
+ * means the same thing on a phone and on a desktop.
+ *
+ * The player's line is drawn at exactly the width the grader inks it at. That
+ * is deliberate - a prettier velocity-tapered nib would mean the line being
+ * scored is not the line on screen, and near-misses would look unfair.
+ */
+(function (SG) {
+  'use strict';
+
+  var geom = SG.geom, ink = SG.ink;
+
+  var MARGIN_FRAC = 0.07;   // breathing room around the signature
+  var MIN_STEP = 1.2;       // px between recorded points, to drop jitter
+
+  function Pad(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.level = null;
+    this.strokes = [];
+    this.showGuide = true;
+    this.locked = false;
+    this.onChange = null;
+    this._pointer = null;
+    this._fit = { scale: 1, ox: 0, oy: 0 };
+    this._css = { w: 0, h: 0 };
+    this._frame = 0;
+
+    this._bind();
+    this.resize();
+  }
+
+  Pad.prototype._bind = function () {
+    var self = this, c = this.canvas;
+
+    c.addEventListener('pointerdown', function (e) {
+      if (self.locked || self._pointer !== null) return;
+      e.preventDefault();
+      self._pointer = e.pointerId;
+      try { c.setPointerCapture(e.pointerId); } catch (err) { /* not fatal */ }
+      self.strokes.push([]);
+      self._add(e);
+    });
+
+    c.addEventListener('pointermove', function (e) {
+      if (self._pointer !== e.pointerId) return;
+      e.preventDefault();
+      // A finger generates points faster than frames arrive; without the
+      // coalesced buffer a quick flourish records as a few long chords. The
+      // list can come back empty (synthetic events, and some browsers once
+      // the event has been consumed), so fall back to the event itself.
+      var events = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
+      if (!events || !events.length) events = [e];
+      for (var i = 0; i < events.length; i++) self._add(events[i]);
+      self.draw();
+    });
+
+    function end(e) {
+      if (self._pointer !== e.pointerId) return;
+      self._pointer = null;
+      try { c.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      var last = self.strokes[self.strokes.length - 1];
+      if (last && !last.length) self.strokes.pop();
+      self.draw();
+      self._changed();
+    }
+    c.addEventListener('pointerup', end);
+    c.addEventListener('pointercancel', end);
+  };
+
+  Pad.prototype._add = function (e) {
+    var r = this.canvas.getBoundingClientRect();
+    var vx = e.clientX - r.left, vy = e.clientY - r.top;
+    var stroke = this.strokes[this.strokes.length - 1];
+    if (!stroke) return;
+    if (stroke.length) {
+      var prev = geom.toView(this._fit, stroke[stroke.length - 1].x,
+                             stroke[stroke.length - 1].y);
+      if (Math.hypot(vx - prev.x, vy - prev.y) < MIN_STEP) return;
+    }
+    stroke.push(geom.toSig(this._fit, vx, vy));
+  };
+
+  Pad.prototype._changed = function () {
+    if (this.onChange) this.onChange(this);
+  };
+
+  Pad.prototype.setLevel = function (level) {
+    this.level = level;
+    this.strokes = [];
+    this.locked = false;
+    this.resize();
+    this._changed();
+  };
+
+  Pad.prototype.clear = function () {
+    this.strokes = [];
+    this.draw();
+    this._changed();
+  };
+
+  Pad.prototype.undo = function () {
+    this.strokes.pop();
+    this.draw();
+    this._changed();
+  };
+
+  Pad.prototype.isEmpty = function () {
+    for (var i = 0; i < this.strokes.length; i++) {
+      if (this.strokes[i].length) return false;
+    }
+    return true;
+  };
+
+  Pad.prototype.resize = function () {
+    var c = this.canvas;
+    var r = c.getBoundingClientRect();
+    var w = Math.max(1, Math.round(r.width));
+    var h = Math.max(1, Math.round(r.height));
+    var dpr = Math.min(window.devicePixelRatio || 1, 3);
+
+    c.width = Math.round(w * dpr);
+    c.height = Math.round(h * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this._css = { w: w, h: h };
+
+    if (this.level) {
+      this._fit = geom.fit(this.level.w, this.level.h, w, h,
+                           Math.min(w, h) * MARGIN_FRAC);
+    }
+    this.draw();
+  };
+
+  /* Coalesce redraws to one per frame: pointermove can fire many times
+   * between paints, especially with coalesced events expanded. */
+  Pad.prototype.draw = function () {
+    var self = this;
+    if (this._frame) return;
+    this._frame = requestAnimationFrame(function () {
+      self._frame = 0;
+      self._paint();
+    });
+  };
+
+  Pad.prototype._paint = function () {
+    var ctx = this.ctx, level = this.level;
+    ctx.clearRect(0, 0, this._css.w, this._css.h);
+    if (!level) return;
+
+    var style = getComputedStyle(this.canvas);
+    if (this.showGuide) {
+      ink.paintSignature(ctx, level, this._fit,
+                         style.getPropertyValue('--guide').trim() || '#d9cfba');
+    }
+    ink.paintStrokes(ctx, this.strokes, level.pen, this._fit,
+                     style.getPropertyValue('--ink').trim() || '#2b2118');
+  };
+
+  SG.Pad = Pad;
+  SG.Pad.MARGIN_FRAC = MARGIN_FRAC;
+})(window.SG || (window.SG = {}));

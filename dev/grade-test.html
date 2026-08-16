@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Grading harness</title>
+<style>
+  :root { --ink:#2b2118; --guide:#d9cfba; --paper:#f4efe4; --card:#fffdf7;
+          --rule:#cbbfa8; --accent:#8c2f22; }
+  body { margin:0; padding:16px; background:var(--paper); color:var(--ink);
+         font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif; }
+  h1 { font-size:17px; margin:0 0 12px; }
+  #summary { font-weight:700; padding:8px 12px; border-radius:6px;
+             display:inline-block; margin-bottom:12px; }
+  .good { background:#dfeadd; color:#2c5c2c; }
+  .bad  { background:#f6ddd9; color:#8c2f22; }
+  pre { background:var(--card); border:1px solid var(--rule); border-radius:6px;
+        padding:12px; overflow-x:auto; font:12px/1.55 ui-monospace,Consolas,monospace; }
+  .fail { color:#8c2f22; font-weight:700; }
+  .pass { color:#2c5c2c; }
+  canvas { background:var(--card); border:1px solid var(--rule); border-radius:6px;
+           width:100%; height:230px; touch-action:none; display:block; }
+  button, select { font:inherit; padding:7px 12px; border:1px solid var(--rule);
+                   background:var(--card); color:var(--ink); border-radius:6px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:10px 0; }
+  #live { font:13px ui-monospace,Consolas,monospace; }
+</style>
+</head>
+<body>
+<h1>Grading harness</h1>
+<div id="summary">running…</div>
+<pre id="out">…</pre>
+
+<h1>Interactive</h1>
+<div class="row">
+  <select id="pick"></select>
+  <button id="undo">Undo</button>
+  <button id="clear">Clear</button>
+  <button id="guide">Hide guide</button>
+  <button id="score">Score</button>
+</div>
+<canvas id="pad"></canvas>
+<div class="row"><span id="live">draw on the card, then Score</span></div>
+
+<script src="../data/signatures.js"></script>
+<script src="../js/geom.js"></script>
+<script src="../js/ink.js"></script>
+<script src="../js/grade.js"></script>
+<script src="../js/pad.js"></script>
+<script>
+(function () {
+  'use strict';
+  var levels = [];
+  window.SIGNATURES.themes.forEach(function (theme) {
+    theme.levels.forEach(function (lv) { levels.push({ lv: lv, theme: theme }); });
+  });
+
+  /* ---------------- synthetic attempts ---------------- */
+
+  // Trace straight down the stored contours. For an outline signature this
+  // runs along the *edge* of the ink rather than its middle, so it is a good
+  // attempt rather than a perfect one - which is all we need to test against.
+  function traced(level) {
+    return SG.geom.contours(level).map(function (pts) {
+      return pts.map(function (p) { return { x: p.x, y: p.y }; });
+    });
+  }
+
+  function jitter(strokes, amount, seed) {
+    var s = seed || 1;
+    function rnd() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff - 0.5; }
+    return strokes.map(function (pts) {
+      return pts.map(function (p) {
+        return { x: p.x + rnd() * amount * 2, y: p.y + rnd() * amount * 2 };
+      });
+    });
+  }
+
+  function shifted(strokes, dx, dy) {
+    return strokes.map(function (pts) {
+      return pts.map(function (p) { return { x: p.x + dx, y: p.y + dy }; });
+    });
+  }
+
+  function partial(strokes, frac) {
+    var keep = Math.max(1, Math.round(strokes.length * frac));
+    return strokes.slice(0, keep);
+  }
+
+  function scribble(level, n, seed) {
+    var s = seed || 7;
+    function rnd() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var pts = [], x = rnd() * level.w, y = rnd() * level.h;
+      for (var j = 0; j < 40; j++) {
+        x += (rnd() - 0.5) * level.w * 0.12;
+        y += (rnd() - 0.5) * level.h * 0.3;
+        pts.push({ x: x, y: y });
+      }
+      out.push(pts);
+    }
+    return out;
+  }
+
+  /* ---------------- checks ---------------- */
+
+  var lines = [], failures = 0;
+  function check(name, cond, detail) {
+    if (!cond) failures++;
+    lines.push((cond ? '  <span class="pass">PASS</span>' : '  <span class="fail">FAIL</span>')
+               + '  ' + name + (detail ? '   ' + detail : ''));
+  }
+
+  function pct(r) { return r.accuracy + '% (p' + r.precision + '/c' + r.coverage + ')'; }
+
+  // A spread of shapes: fine and fat pens, simple and tangled, both kinds.
+  var sample = ['Q937', 'Q9068', 'Q5582', 'Q7322', 'Q5682', 'Q1615'];
+  var picked = levels.filter(function (e) { return sample.indexOf(e.lv.id) >= 0; });
+  if (!picked.length) picked = levels.slice(0, 5);
+
+  lines.push('grading ' + picked.length + ' signatures\n');
+
+  var diagAvg = 0;
+  picked.forEach(function (e) {
+    var lv = e.lv, diag = SG.geom.diagonal(lv);
+    diagAvg += diag;
+    var base = traced(lv);
+
+    var rTrace = SG.grade.score(lv, base);
+    var rNear  = SG.grade.score(lv, jitter(base, diag * 0.006, 11));
+    var rLoose = SG.grade.score(lv, jitter(base, diag * 0.030, 13));
+    var rWild  = SG.grade.score(lv, jitter(base, diag * 0.090, 17));
+    var rShift = SG.grade.score(lv, shifted(base, diag * 0.05, 0));
+    var rHalf  = SG.grade.score(lv, partial(base, 0.35));
+    var rScrib = SG.grade.score(lv, scribble(lv, 6, 23));
+    var rEmpty = SG.grade.score(lv, []);
+
+    lines.push(lv.name + '  [' + lv.kind + ', pen ' + lv.pen + ', pass ' + lv['pass'] + '%]');
+    lines.push('    on the line   ' + pct(rTrace));
+    lines.push('    slight wobble ' + pct(rNear));
+    lines.push('    loose         ' + pct(rLoose));
+    lines.push('    wild          ' + pct(rWild));
+    lines.push('    shifted 5%    ' + pct(rShift));
+    lines.push('    only 35%      ' + pct(rHalf));
+    lines.push('    scribble      ' + pct(rScrib));
+
+    check(lv.name + ': tracing the line scores well', rTrace.accuracy >= 55,
+          'got ' + rTrace.accuracy);
+    check(lv.name + ': accuracy falls as wobble grows',
+          rNear.accuracy > rLoose.accuracy && rLoose.accuracy > rWild.accuracy,
+          rNear.accuracy + ' > ' + rLoose.accuracy + ' > ' + rWild.accuracy);
+    check(lv.name + ': a shift is penalised', rShift.accuracy < rTrace.accuracy,
+          rShift.accuracy + ' < ' + rTrace.accuracy);
+    check(lv.name + ': missing most of it wrecks coverage',
+          rHalf.coverage < rTrace.coverage * 0.75,
+          'coverage ' + rHalf.coverage + ' vs ' + rTrace.coverage);
+    check(lv.name + ': scribbling wrecks precision', rScrib.precision < 55,
+          'precision ' + rScrib.precision);
+    check(lv.name + ': scribbling scores below tracing',
+          rScrib.accuracy < rTrace.accuracy, rScrib.accuracy + ' < ' + rTrace.accuracy);
+    check(lv.name + ': nothing drawn scores zero', rEmpty.accuracy === 0);
+    lines.push('');
+  });
+
+  document.getElementById('out').innerHTML = lines.join('\n');
+  var sum = document.getElementById('summary');
+  sum.textContent = failures ? (failures + ' check(s) FAILED') : 'all checks passed';
+  sum.className = failures ? 'bad' : 'good';
+
+  /* ---------------- interactive ---------------- */
+
+  var pick = document.getElementById('pick');
+  levels.forEach(function (e, i) {
+    var o = document.createElement('option');
+    o.value = i;
+    o.textContent = e.theme.name + ' — ' + e.lv.name + ' (d' + e.lv.difficulty + ')';
+    pick.appendChild(o);
+  });
+
+  var pad = new SG.Pad(document.getElementById('pad'));
+  window.__pad = pad;            // for poking at from the console
+  function load() { pad.setLevel(levels[pick.value | 0].lv); }
+  pick.addEventListener('change', load);
+  load();
+  window.addEventListener('resize', function () { pad.resize(); });
+
+  document.getElementById('undo').onclick = function () { pad.undo(); };
+  document.getElementById('clear').onclick = function () { pad.clear(); };
+  document.getElementById('guide').onclick = function (e) {
+    pad.showGuide = !pad.showGuide;
+    e.target.textContent = pad.showGuide ? 'Hide guide' : 'Show guide';
+    pad.draw();
+  };
+  document.getElementById('score').onclick = function () {
+    var t0 = performance.now();
+    var r = SG.grade.score(pad.level, pad.strokes);
+    var ms = (performance.now() - t0).toFixed(0);
+    document.getElementById('live').textContent =
+      'accuracy ' + r.accuracy + '%  precision ' + r.precision +
+      '%  coverage ' + r.coverage + '%  · need ' + pad.level['pass'] +
+      '% · ' + ms + 'ms';
+  };
+})();
+</script>
+</body>
+</html>

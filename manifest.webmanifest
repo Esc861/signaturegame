@@ -1,0 +1,19 @@
+{
+  "name": "The Forger's Archive",
+  "short_name": "Forger",
+  "description": "Trace the signatures of history, one flourish at a time.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4efe4",
+  "theme_color": "#f4efe4",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
