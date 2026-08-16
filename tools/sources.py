@@ -442,18 +442,17 @@ PRIORITY = {
 # and a connected flow are easy; thin, fragmented and tightly curved are hard -
 # but they are geometry, and some difficulty is not geometric.
 #
-# Lennon is the clearest case. By every measure his signature is simple: one
-# connected piece, a medium nib, short, moderate curvature. What makes it awkward
-# is that the letters are so unpronounced - the forms are barely there, so there
-# is nothing to aim at. Middling, not hard. No weighting of shape metrics moved
-# him out of the easiest handful, and inventing one that happened to catch him
-# would have been fitting a curve to a single point.
+# Lennon and Hughes are both wide, and the aspect weight now covers most of why
+# they play hard. This is the remainder: in both cases the letters are so
+# unpronounced that there is nothing to aim at, which no shape metric sees.
+# Middling-to-hard, not hardest.
 #
-# Cervantes is mostly caught by the metrics now (sheer line length, plus the
-# small disconnected pieces); this is the remainder.
+# Kept deliberately short. It exists for signatures where playing the thing
+# disagrees with measuring it, not as a place to hand-rank the corpus - if it
+# starts filling up, the metrics are wrong and should be fixed instead.
 DIFFICULTY_NUDGE = {
-    "John Lennon": 26,
-    "Miguel de Cervantes": 16,
+    "John Lennon": 14,
+    "Howard Hughes": 18,
 }
 
 # Commons file titles that convert badly in ways the automated checks in
@@ -473,6 +472,11 @@ EXCLUDE_NAMES = {
     "Reinhard Heydrich", "Martin Bormann", "Joseph Goebbels", "Rudolf Hess",
     "Adolf Eichmann", "Josef Mengele",
     "Pelé", "Diego Maradona", "Kobe Bryant",
+
+    # Not a signature the way the rest are: a dense document rubric, several
+    # lines of compact writing plus a flourish. Shrunk to a phone card in
+    # portrait the letters are too small to trace at all.
+    "Miguel de Cervantes",
 }
 
 

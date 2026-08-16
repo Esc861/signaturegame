@@ -198,13 +198,14 @@ and combined.
 
 | weight | metric | what it catches |
 |---|---|---|
-| 0.32 | fineness | how narrow the nib is **relative to the signature's own size** |
-| 0.20 | ink ratio | sheer length of line — Cervantes has the most in the corpus |
-| 0.16 | fragments | small disconnected marks, each needing the hand re-sited |
-| 0.10 | curl | how tightly the line turns as it travels: fiddly vs sweeping |
-| 0.10 | contours | pen lifts and counters |
-| 0.06 | turning | overall curliness |
-| 0.06 | corners | abrupt direction changes |
+| 0.26 | fineness | how narrow the nib is **relative to the signature's own size** |
+| 0.20 | ink ratio | sheer length of line |
+| 0.16 | aspect | how long and thin it is — see below |
+| 0.14 | fragments | small disconnected marks, each needing the hand re-sited |
+| 0.08 | curl | how tightly the line turns as it travels: fiddly vs sweeping |
+| 0.08 | contours | pen lifts and counters |
+| 0.04 | turning | overall curliness |
+| 0.04 | corners | abrupt direction changes |
 
 Fineness dominates because it is the strongest single predictor: van Gogh's broad
 blunt hand forgives a wobble no matter how it loops, while Curie's hairline
@@ -216,12 +217,32 @@ elsewhere a hairline breaks into hundreds of "pieces" that are raster gaps rathe
 than pen lifts — Voltaire read as 211 at 340px and 18 at 1000px — which would
 have measured thinness a second time under a different name.
 
-`DIFFICULTY_NUDGE` in `tools/sources.py` adjusts the handful where playing
-disagrees with measuring. John Lennon is the honest case for it: by every measure
-his signature is simple — one connected piece, medium nib, short, moderate
-curvature — but the letters are so unpronounced there is nothing to aim at. No
-weighting of shape metrics moved him out of the easiest handful, and inventing
-one that happened to catch him would have been fitting a curve to a single point.
+### Aspect is compensation, not a property of the handwriting
+
+Signatures are normalized to a long side of 1000 and the card fills the screen's
+width, so an 8:1 signature is only 125 units tall where a 3:1 one is 333 — its
+letterforms land on screen a third the size, in portrait especially. Howard
+Hughes and John Lennon both play hard for exactly that reason while nothing about
+their geometry says so.
+
+**This is a presentation problem being paid for in difficulty.** The better fix
+is to give long signatures more room in portrait — rotating the card, or letting
+the player pan along it — after which this weight should come back down. It is
+worth keeping that in mind before treating 0.16 as a fact about handwriting.
+
+### Where measurement and play disagree
+
+`DIFFICULTY_NUDGE` in `tools/sources.py` adjusts the remainder. Lennon and Hughes
+each carry a small one: aspect now explains most of why they play hard, but in
+both cases the letters are so unpronounced that there is nothing to aim at, which
+no shape metric sees. It is kept deliberately short — it exists for signatures
+where playing the thing disagrees with measuring it, not as a place to hand-rank
+the corpus. If it starts filling up, the metrics are wrong and should be fixed.
+
+Cervantes was dropped from the corpus rather than nudged. His artwork is a dense
+document rubric — several lines of compact writing plus a flourish — and shrunk
+to a phone card in portrait the letters are too small to trace at all. That is
+not a difficulty problem; it is not a signature the way the others are.
 
 Tracks are then ordered by that score, so each collection runs easiest to
 hardest, and every track is trimmed to the same even length.

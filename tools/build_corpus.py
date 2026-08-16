@@ -205,14 +205,27 @@ def years(person):
 # Curie's hairline punishes a millimetre. Judging on shape alone put fat, showy
 # signatures above fine, plain ones that are markedly harder to trace.
 WEIGHTS = {
-    "fineness":  0.32,   # how narrow the pen is, relative to the signature
+    "fineness":  0.26,   # how narrow the pen is, relative to the signature
     "ink_ratio": 0.20,   # pen travel packed into the space
-    "fragments": 0.16,   # small disconnected marks to re-site the hand for
-    "curl":      0.10,   # how tightly the line turns as it travels
-    "contours":  0.10,   # pen lifts and counters
-    "turning":   0.06,   # curliness
-    "corners":   0.06,   # abrupt direction changes
+    "aspect":    0.16,   # how long and thin it is - see below
+    "fragments": 0.14,   # small disconnected marks to re-site the hand for
+    "curl":      0.08,   # how tightly the line turns as it travels
+    "contours":  0.08,   # pen lifts and counters
+    "turning":   0.04,   # curliness
+    "corners":   0.04,   # abrupt direction changes
 }
+
+# Aspect is in here for a reason that is about the phone, not the handwriting.
+# Signatures are normalized to a long side of 1000, and the card fills the
+# screen's width, so an 8:1 signature is only 125 units tall where a 3:1 one is
+# 333 - its letterforms land on screen a third the size, in portrait especially.
+# Howard Hughes and John Lennon are both wide and both play hard for exactly
+# that reason, while nothing about their geometry says so.
+#
+# This is compensation for a presentation problem rather than a property of the
+# signature. The better fix is to give long signatures more room in portrait -
+# rotating the card, or letting the player pan along it - after which this
+# weight should come back down.
 
 
 def percentile_ranks(values):
