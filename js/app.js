@@ -324,8 +324,11 @@
       go('#/');
     });
 
-    // Offline + installable. Skipped on file://, where registration throws.
-    if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
+    // Offline + installable. Skipped on file://, where registration throws, and
+    // on localhost, where a cache-first worker serves yesterday's code back to
+    // you and quietly wastes an afternoon.
+    var local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+    if ('serviceWorker' in navigator && /^https?:/.test(location.protocol) && !local) {
       navigator.serviceWorker.register('sw.js').catch(function () { /* fine */ });
     }
 

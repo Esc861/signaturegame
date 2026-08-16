@@ -19,6 +19,17 @@
   --radius: 10px;
   --serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* The wordmark. No webfont: the game has to run from file:// and offline, so
+     anything fetched is out, and embedding one would cost more than the whole
+     rest of the app put together. Each platform picks the best handwriting face
+     it already ships - Snell Roundhand on Apple, Segoe Script on Windows.
+     Ordered to prefer faces that actually look written over formal calligraphic
+     ones: Gabriola is handsome but reads as a document, not a hand, which is
+     the wrong note for a game about other people's handwriting. */
+  --script: "Snell Roundhand", "Apple Chancery", "Segoe Script", "Bradley Hand",
+            "Brush Script MT", Gabriola, "Lucida Handwriting", "Ink Free",
+            cursive;
 }
 
 * { box-sizing: border-box; }
@@ -66,11 +77,15 @@ body {
 }
 .masthead h1 {
   margin: 0;
-  font-family: var(--serif);
-  font-size: clamp(38px, 12vw, 56px);
+  font-family: var(--script);
+  /* Handwriting faces carry tall ascenders and deep descenders, so this needs
+     more room than the serif did, and a touch of negative tracking to stop the
+     letters drifting apart at display size. */
+  font-size: clamp(44px, 14vw, 66px);
   font-weight: 600;
-  line-height: .98;
-  letter-spacing: -.015em;
+  line-height: 1.12;
+  letter-spacing: -.01em;
+  color: var(--ink);
 }
 .lede {
   margin: 14px 0 0;
