@@ -130,9 +130,18 @@ def convert(svg_text):
         stroke_w = ink_area / perim
 
     # A fine hand is harder to trace accurately than a broad one: the target is
-    # narrower, so the same wobble of the finger costs far more. This is the
-    # single biggest thing the shape-only metrics were missing.
-    m["fineness"] = 1.0 / max(stroke_w, 0.5)
+    # narrower, so the same wobble of the finger costs far more. Measured
+    # against the signature's own size, not in absolute units - a broad nib on
+    # a large signature is what "thick" actually means to the hand tracing it.
+    diag = math.hypot(w, h)
+    m["fineness"] = diag / max(stroke_w, 0.5)
+
+    # Mean curvature: how tightly the line turns per unit travelled. Big
+    # sweeping curves are easy to follow and score low here; a hand made of
+    # small fiddly turns scores high.
+    travel = perim / 2.0 if kind == "outline" else perim
+    turn_total = sum(geometry.turning(s["points"]) for s in shapes)
+    m["curl"] = 1000.0 * turn_total / max(travel, 1e-6)
 
     # Crude traces collapse letterforms into filled blobs. The giveaway is the
     # largest disc that fits inside the ink: a pen of any width draws a ribbon,
@@ -196,13 +205,13 @@ def years(person):
 # Curie's hairline punishes a millimetre. Judging on shape alone put fat, showy
 # signatures above fine, plain ones that are markedly harder to trace.
 WEIGHTS = {
-    "ink_ratio": 0.26,   # pen travel packed into the space
-    "fineness":  0.22,   # how narrow the pen is
-    "turning":   0.16,   # curliness
-    "tangle":    0.14,   # how many strokes a horizontal line crosses
-    "corners":   0.12,   # abrupt direction changes
-    "contours":  0.06,   # pen lifts and counters
-    "aspect":    0.04,   # awkward proportions
+    "fineness":  0.32,   # how narrow the pen is, relative to the signature
+    "ink_ratio": 0.20,   # pen travel packed into the space
+    "fragments": 0.16,   # small disconnected marks to re-site the hand for
+    "curl":      0.10,   # how tightly the line turns as it travels
+    "contours":  0.10,   # pen lifts and counters
+    "turning":   0.06,   # curliness
+    "corners":   0.06,   # abrupt direction changes
 }
 
 
@@ -230,9 +239,16 @@ def score_difficulty(entries):
     ranked = {}
     for key in WEIGHTS:
         ranked[key] = percentile_ranks([e["metrics"][key] for e in entries])
+    used = set()
     for i, e in enumerate(entries):
-        e["difficulty"] = round(
-            100.0 * sum(WEIGHTS[k] * ranked[k][i] for k in WEIGHTS))
+        d = 100.0 * sum(WEIGHTS[k] * ranked[k][i] for k in WEIGHTS)
+        nudge = sources.DIFFICULTY_NUDGE.get(e["person"]["name"], 0)
+        if nudge:
+            used.add(e["person"]["name"])
+        e["difficulty"] = int(round(max(0.0, min(100.0, d + nudge))))
+    missing = sorted(set(sources.DIFFICULTY_NUDGE) - used)
+    if missing:
+        print("  note: difficulty nudges matched nobody: %s" % ", ".join(missing))
 
 
 def pass_mark(difficulty):
@@ -338,10 +354,38 @@ def level_up(kept, args):
     return kept
 
 
+FRAGMENT_PX = 1000    # resolution for counting genuinely separate marks
+
+
+def add_fragment_metric(entries):
+    """Count the small, separate marks in each signature.
+
+    A name written in one connected flow is far easier than the same name broken
+    into a dozen little marks, each needing the hand lifted, re-sited and
+    re-started. Only pieces under a fiftieth of the ink count: the handful of
+    large pieces in any signature are just its words.
+
+    Measured at high resolution, and only on the levels that made the cut,
+    because it is slow. At the resolution used elsewhere a hairline breaks into
+    hundreds of "pieces" that are raster gaps rather than pen lifts - Voltaire
+    read as 211 at 340px and 18 at 1000px - which would have measured thinness
+    a second time under another name.
+    """
+    for e in entries:
+        cov, W, H, _ = raster.rasterize(
+            raster.shapes_to_contours(e["shapes"]), e["w"], e["h"],
+            e["kind"], e["rule"], long_side=FRAGMENT_PX)
+        total, small = raster.components(cov, W, H, min_frac=0.02)
+        e["metrics"]["fragments"] = float(small)
+        e["pieces"] = total
+
+
 def build(args):
     kept = level_up(gather(args), args)
 
     flat = [e for rows in kept.values() for e in rows]
+    print("\nCounting separate marks...")
+    add_fragment_metric(flat)
     if not flat:
         print("No signatures survived conversion.")
         return 1

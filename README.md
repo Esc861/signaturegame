@@ -191,13 +191,37 @@ cheat on Warhol.
 
 ## Difficulty
 
-Each signature is scored on six shape metrics plus **fineness**, all ranked as
-percentiles across the corpus and combined. Fineness — how narrow the pen is —
-carries the second-largest weight, because difficulty is not only about shape:
-van Gogh's broad, blunt hand is forgiving no matter how it loops, while Curie's
-hairline punishes a millimetre. Judging on shape alone put fat, showy signatures
-above fine, plain ones that are markedly harder to trace, and the tracks did not
-feel like they ramped.
+Built to reproduce one description, arrived at by playing it: *the easy ones have
+thick lines, big obvious curves, and a connected flow for each part of the name.*
+Each metric below is one clause of that, ranked as a percentile across the corpus
+and combined.
+
+| weight | metric | what it catches |
+|---|---|---|
+| 0.32 | fineness | how narrow the nib is **relative to the signature's own size** |
+| 0.20 | ink ratio | sheer length of line — Cervantes has the most in the corpus |
+| 0.16 | fragments | small disconnected marks, each needing the hand re-sited |
+| 0.10 | curl | how tightly the line turns as it travels: fiddly vs sweeping |
+| 0.10 | contours | pen lifts and counters |
+| 0.06 | turning | overall curliness |
+| 0.06 | corners | abrupt direction changes |
+
+Fineness dominates because it is the strongest single predictor: van Gogh's broad
+blunt hand forgives a wobble no matter how it loops, while Curie's hairline
+punishes a millimetre. Inverse pen width alone very nearly reproduces the whole
+ordering.
+
+Fragments are counted at high resolution on purpose. At the resolution used
+elsewhere a hairline breaks into hundreds of "pieces" that are raster gaps rather
+than pen lifts — Voltaire read as 211 at 340px and 18 at 1000px — which would
+have measured thinness a second time under a different name.
+
+`DIFFICULTY_NUDGE` in `tools/sources.py` adjusts the handful where playing
+disagrees with measuring. John Lennon is the honest case for it: by every measure
+his signature is simple — one connected piece, medium nib, short, moderate
+curvature — but the letters are so unpronounced there is nothing to aim at. No
+weighting of shape metrics moved him out of the easiest handful, and inventing
+one that happened to catch him would have been fitting a curve to a single point.
 
 Tracks are then ordered by that score, so each collection runs easiest to
 hardest, and every track is trimmed to the same even length.

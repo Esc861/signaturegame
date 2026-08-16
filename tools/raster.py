@@ -168,6 +168,47 @@ def fattest_point(cov, W, H):
     return max(d) if d else 0.0
 
 
+def components(cov, W, H, min_frac=0.02):
+    """Separate pieces of ink, and how many of them are small.
+
+    A name written in one connected flow is far easier to trace than the same
+    name broken into a dozen disconnected marks - the hand can keep going
+    instead of lifting, re-siting and re-starting for each piece. The count of
+    *small* pieces matters on its own: those are the fiddly bits.
+
+    Returns (total pieces, pieces smaller than min_frac of the ink).
+    """
+    seen = bytearray(W * H)
+    total = small = 0
+    sizes = []
+    for start in range(W * H):
+        if not cov[start] or seen[start]:
+            continue
+        stack = [start]
+        seen[start] = 1
+        size = 0
+        while stack:
+            i = stack.pop()
+            size += 1
+            x, y = i % W, i // W
+            for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1),
+                           (x - 1, y - 1), (x + 1, y - 1),
+                           (x - 1, y + 1), (x + 1, y + 1)):
+                if 0 <= nx < W and 0 <= ny < H:
+                    j = ny * W + nx
+                    if cov[j] and not seen[j]:
+                        seen[j] = 1
+                        stack.append(j)
+        sizes.append(size)
+        total += 1
+
+    ink = sum(sizes) or 1
+    for s in sizes:
+        if s / ink < min_frac:
+            small += 1
+    return total, small
+
+
 def enclosed_ratio(cov, W, H):
     """Area of enclosed background over area of ink.
 

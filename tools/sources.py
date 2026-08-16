@@ -435,6 +435,27 @@ PRIORITY = {
     "Ernest Hemingway",
 }
 
+# Difficulty adjustments, in points, for signatures where playing the thing
+# disagrees with measuring it. Applied before the tracks are ordered.
+#
+# The metrics reproduce the stated rule well - thick lines, big obvious curves
+# and a connected flow are easy; thin, fragmented and tightly curved are hard -
+# but they are geometry, and some difficulty is not geometric.
+#
+# Lennon is the clearest case. By every measure his signature is simple: one
+# connected piece, a medium nib, short, moderate curvature. What makes it awkward
+# is that the letters are so unpronounced - the forms are barely there, so there
+# is nothing to aim at. Middling, not hard. No weighting of shape metrics moved
+# him out of the easiest handful, and inventing one that happened to catch him
+# would have been fitting a curve to a single point.
+#
+# Cervantes is mostly caught by the metrics now (sheer line length, plus the
+# small disconnected pieces); this is the remainder.
+DIFFICULTY_NUDGE = {
+    "John Lennon": 26,
+    "Miguel de Cervantes": 16,
+}
+
 # Commons file titles that convert badly in ways the automated checks in
 # build_corpus don't catch -- hollow outline art, cropped scans, artwork that
 # is a monogram rather than a signature. The checks there are deliberately
