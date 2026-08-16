@@ -104,16 +104,38 @@ exactly what is on the card rather than a lookalike that could drift out of sync
 
 ## How scoring works
 
-Both the target and the attempt are rasterized to binary ink masks, and each
-gets a distance field. That yields three numbers:
+Modelled on what a forensic document examiner actually looks for. The first and
+best tell is **line quality**: a genuine signature is written fast and
+automatically, so it runs smooth and continuous, while a copy betrays itself with
+tremor, hesitation and patching. Where the signature sits on the page is not a
+criterion at all — an exact positional match to a known specimen is evidence *of*
+tracing — so a steady line slightly off the mark beats a shaky one dead on it.
 
+Both the target and the attempt are rasterized to binary ink masks, and each
+gets a distance field. That yields four numbers:
+
+- **fluency** — line quality: how much the stroke shortens when smoothed, which
+  a fluent curve barely does and a shaky one does a lot
 - **precision** — how close the player's ink sits to the target's
 - **coverage** — how much of the target's ink the player actually reached
 - **economy** — whether they got there without drawing far further than the
   signature is long
 
-Precision and coverage combine as a **harmonic mean**, then economy scales the
-result.
+Precision and coverage combine as a **harmonic mean**; fluency and economy scale
+the result.
+
+Before any of that, the attempt is nudged onto the target by up to 3.5% of the
+diagonal, so a well-formed but transposed trace is not punished for the one thing
+nobody judges. Two details make that work rather than backfire: both centres are
+measured from the *rendered ink* (the target's stored contour points are a
+different quantity, weighted by however densely that file was traced, and using
+one against the other dragged correct attempts off the mark), and the nudge is
+kept only if it actually scores better — so alignment can help but never hurt.
+
+Fluency is sampled at a fine, fixed spatial scale rather than a multiple of the
+pen width. Tremor is high-frequency and genuine curvature is low-frequency; step
+coarsely and the smoothing eats the curvature too, which read van Gogh's broad
+sweeping hand as though it were shaking.
 
 All three are needed. Precision and coverage alone were exploitable, and badly:
 scribbling back and forth across the card scored 80%+. Signatures are mostly

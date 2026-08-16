@@ -132,6 +132,22 @@
     return mask;
   }
 
+  /* Centre of the inked pixels. Both sides of a comparison must be measured
+   * this same way: the centroid of a target's stored contour points is a
+   * different quantity, weighted by however densely that file happened to be
+   * traced, and using one against the other pulls a correctly placed attempt
+   * off the mark. */
+  function maskCentroid(mask, w) {
+    var sx = 0, sy = 0, n = 0;
+    for (var i = 0; i < mask.length; i++) {
+      if (!mask[i]) continue;
+      sx += i % w;
+      sy += (i / w) | 0;
+      n++;
+    }
+    return n ? { x: sx / n, y: sy / n, count: n } : null;
+  }
+
   /* Two-pass chamfer distance transform, in pixels.
    *
    * Exact Euclidean distance would cost more and buy nothing here: the scores
@@ -183,6 +199,7 @@
     errorColor: errorColor,
     scratch: scratch,
     maskOf: maskOf,
+    maskCentroid: maskCentroid,
     distanceField: distanceField
   };
 })(window.SG || (window.SG = {}));

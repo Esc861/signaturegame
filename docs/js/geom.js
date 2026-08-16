@@ -46,6 +46,55 @@
     return Math.sqrt(level.w * level.w + level.h * level.h);
   }
 
+  /* Walk a polyline emitting a point every `step` units of arc length.
+   *
+   * Anything judging the *shape* of a stroke has to work at a fixed spatial
+   * scale, or it measures how densely the points happen to have been recorded
+   * instead - a slow finger reports far more points over the same curve. */
+  function resample(pts, step) {
+    if (!pts || pts.length < 2) return (pts || []).slice();
+    var out = [pts[0]], carry = 0;
+    for (var i = 1; i < pts.length; i++) {
+      var a = pts[i - 1], b = pts[i];
+      var dx = b.x - a.x, dy = b.y - a.y;
+      var seg = Math.hypot(dx, dy);
+      if (seg <= 0) continue;
+      var t = 0;
+      while (carry + (seg - t) >= step) {
+        t += step - carry;
+        out.push({ x: a.x + dx * (t / seg), y: a.y + dy * (t / seg) });
+        carry = 0;
+      }
+      carry += seg - t;
+    }
+    return out;
+  }
+
+  /* Length-weighted centre of a set of polylines: where the ink sits. */
+  function inkCentroid(strokes) {
+    var sx = 0, sy = 0, w = 0;
+    for (var i = 0; i < strokes.length; i++) {
+      var pts = strokes[i];
+      for (var j = 1; j < pts.length; j++) {
+        var a = pts[j - 1], b = pts[j];
+        var L = Math.hypot(b.x - a.x, b.y - a.y);
+        if (!L) continue;
+        sx += (a.x + b.x) / 2 * L;
+        sy += (a.y + b.y) / 2 * L;
+        w += L;
+      }
+      if (pts.length === 1) { sx += pts[0].x; sy += pts[0].y; w += 1; }
+    }
+    return w ? { x: sx / w, y: sy / w, weight: w } : null;
+  }
+
+  function shift(strokes, dx, dy) {
+    if (!dx && !dy) return strokes;
+    return strokes.map(function (pts) {
+      return pts.map(function (p) { return { x: p.x + dx, y: p.y + dy }; });
+    });
+  }
+
   function strokeLength(pts) {
     var L = 0;
     for (var i = 1; i < pts.length; i++) {
@@ -60,6 +109,9 @@
     toSig: toSig,
     contours: contours,
     diagonal: diagonal,
-    strokeLength: strokeLength
+    strokeLength: strokeLength,
+    resample: resample,
+    inkCentroid: inkCentroid,
+    shift: shift
   };
 })(window.SG || (window.SG = {}));

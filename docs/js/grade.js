@@ -76,8 +76,35 @@
   var STRAY_COST = 0.06;   // scored penalty per stray stroke
   var STRAY_FLOOR = 0.55;  // ...but stray strokes alone cannot zero a score
 
-  function bounds(level, strokes) {
-    var pad = level.pen;
+  // How far the whole attempt may be nudged to meet the target, as a fraction
+  // of the diagonal. A document examiner does not care where on the page a
+  // signature sits - they compare its form, and an exact positional match to a
+  // known specimen is evidence of tracing, not of authenticity. A trace that is
+  // the right shape but a few units low was being marked down for the one thing
+  // nobody judges. Capped, so this forgives an offset rather than allowing a
+  // signature drawn anywhere on the card.
+  var MAX_SHIFT = 0.035;
+
+  // Line quality: the examiner's first and best tell. A genuine signature is
+  // written fast and automatically, so it runs smooth and continuous; forgeries
+  // betray themselves with tremor, hesitation and patching. This measures how
+  // much a stroke shortens when smoothed - a fluent curve barely moves, a shaky
+  // one collapses - and it is scored hard, because it is the thing that
+  // separates a practised hand from a careful copy.
+  // Sampled at a fine, fixed spatial scale rather than a multiple of the pen.
+  // Tremor is a high-frequency wobble; genuine curvature is low-frequency. Step
+  // coarsely and smoothing eats the curvature too, which read van Gogh's broad
+  // sweeping hand as though it were shaking.
+  var FLUENCY_STEP = 0.004; // resample interval, as a fraction of the diagonal
+  // Measured across the corpus: a fluent traced line shortens by about 0.01-0.02
+  // when smoothed, a visibly shaky one by 0.05 and up. The band is set from
+  // those, so honest curvature costs nothing and tremor costs steeply.
+  var FLUENCY_FREE = 0.018; // shortening below this is just honest curvature
+  var FLUENCY_FULL = 0.075; // ...and at this much, the line is all tremor
+  var FLUENCY_FLOOR = 0.45; // worst multiplier tremor alone can inflict
+
+  function bounds(level, strokes, extra) {
+    var pad = level.pen + (extra || 0);
     var x0 = -pad, y0 = -pad, x1 = level.w + pad, y1 = level.h + pad;
     for (var i = 0; i < strokes.length; i++) {
       for (var j = 0; j < strokes[i].length; j++) {
@@ -117,19 +144,52 @@
     return level._travel;
   }
 
+  /* How much a stroke shortens when smoothed: 0 is a fluent line, higher is
+   * tremor. Measured at a fixed spatial step so it reads the shape of the line
+   * rather than how many points the device happened to report. */
+  function shakiness(level, strokes) {
+    var step = Math.max(2, FLUENCY_STEP * geom.diagonal(level));
+    var raw = 0, smooth = 0;
+    for (var i = 0; i < strokes.length; i++) {
+      var pts = geom.resample(strokes[i], step);
+      if (pts.length < 5) continue;      // too short to say anything about
+      raw += geom.strokeLength(pts);
+      smooth += geom.strokeLength(smoothPath(pts));
+    }
+    if (raw <= 0) return 0;
+    return Math.max(0, 1 - smooth / raw);
+  }
+
+  /* One pass of a 1-2-1 kernel, ends pinned. */
+  function smoothPath(pts) {
+    var out = new Array(pts.length);
+    out[0] = pts[0];
+    out[pts.length - 1] = pts[pts.length - 1];
+    for (var i = 1; i < pts.length - 1; i++) {
+      out[i] = {
+        x: (pts[i - 1].x + 2 * pts[i].x + pts[i + 1].x) / 4,
+        y: (pts[i - 1].y + 2 * pts[i].y + pts[i + 1].y) / 4
+      };
+    }
+    return out;
+  }
+
   function falloff(d, free, tol) {
     if (d <= free) return 1;
     if (d >= tol) return 0;
     return 1 - (d - free) / (tol - free);
   }
 
-  function score(level, strokes) {
+  function score(level, drawn) {
     var empty = {
-      accuracy: 0, precision: 0, coverage: 0, economy: 0, errors: [], ok: false
+      accuracy: 0, precision: 0, coverage: 0, economy: 0, fluency: 0,
+      errors: [], ok: false
     };
-    if (!strokes || !strokes.length) return empty;
+    if (!drawn || !drawn.length) return empty;
 
-    var b = bounds(level, strokes);
+    var strokes = drawn;
+    var cap = MAX_SHIFT * geom.diagonal(level);
+    var b = bounds(level, strokes, cap);
     var spanW = b.x1 - b.x0, spanH = b.y1 - b.y0;
     if (spanW <= 0 || spanH <= 0) return empty;
 
@@ -143,24 +203,62 @@
     var target = ink.maskOf(tc);
 
     var uc = ink.scratch(W, H);
-    ink.paintStrokes(uc.getContext('2d'), strokes, level.pen, t, '#000');
+    var uctx = uc.getContext('2d');
+    ink.paintStrokes(uctx, strokes, level.pen, t, '#000');
     var user = ink.maskOf(uc);
 
     if (!target.count || !user.count) return empty;
 
     var dTarget = ink.distanceField(target, W, H);
-    var dUser = ink.distanceField(user, W, H);
-
     var free = FREE_FRAC * level.pen * scale;
     var tol = free + TOL_FRAC * geom.diagonal(level) * scale;
 
-    var i, sum = 0;
-    for (i = 0; i < user.length; i++) {
-      if (user[i]) sum += Math.pow(falloff(dTarget[i], free, tol), SHARPNESS);
+    function precisionOf(mask) {
+      var s = 0;
+      for (var k = 0; k < mask.length; k++) {
+        if (mask[k]) s += Math.pow(falloff(dTarget[k], free, tol), SHARPNESS);
+      }
+      return s / mask.count;
     }
-    var precision = sum / user.count;
 
-    sum = 0;
+    // Judged on form, not placement. A document examiner compares how a
+    // signature is built, not where on the page it landed, so the attempt may
+    // be nudged onto the target, up to a capped distance.
+    //
+    // Both centres come from the rendered ink - the target's stored contour
+    // points are a different quantity and dragged attempts off the mark. Even
+    // then the nudge is only kept if it scores better: a traced centreline's
+    // ink does not sit exactly where the filled target's does, so centring
+    // blindly made a *correct* attempt worse, which is the opposite of
+    // forgiving an offset. Alignment can only ever help.
+    var precision = precisionOf(user);
+    var dx = 0, dy = 0;
+    var tCentre = ink.maskCentroid(target, W);
+    var uCentre = ink.maskCentroid(user, W);
+    if (tCentre && uCentre) {
+      var ddx = tCentre.x - uCentre.x, ddy = tCentre.y - uCentre.y;
+      var dist = Math.hypot(ddx, ddy), capPx = cap * scale;
+      if (dist > capPx) { ddx *= capPx / dist; ddy *= capPx / dist; }
+      if (Math.abs(ddx) >= 0.5 || Math.abs(ddy) >= 0.5) {
+        var shifted = { scale: scale, ox: t.ox + ddx, oy: t.oy + ddy };
+        uctx.clearRect(0, 0, W, H);
+        ink.paintStrokes(uctx, strokes, level.pen, shifted, '#000');
+        var shiftedMask = ink.maskOf(uc);
+        if (shiftedMask.count) {
+          var shiftedPrecision = precisionOf(shiftedMask);
+          if (shiftedPrecision > precision) {
+            precision = shiftedPrecision;
+            user = shiftedMask;
+            t = shifted;
+            dx = ddx; dy = ddy;
+          }
+        }
+      }
+    }
+
+    var dUser = ink.distanceField(user, W, H);
+
+    var i, sum = 0;
     for (i = 0; i < target.length; i++) {
       if (target[i]) sum += Math.pow(falloff(dUser[i], free, tol), COVER_SHARPNESS);
     }
@@ -178,16 +276,26 @@
     var stray = strayStrokes(errors);
     var strayFactor = Math.max(STRAY_FLOOR, 1 - STRAY_COST * stray);
 
+    // Line quality. Scored on the strokes as drawn - shifting them cannot make
+    // a shaky line steady, but measuring the un-nudged version keeps it honest.
+    var shake = shakiness(level, drawn);
+    var fluency = 1 - Math.min(1, Math.max(0, shake - FLUENCY_FREE)
+                                  / (FLUENCY_FULL - FLUENCY_FREE));
+    var fluencyFactor = FLUENCY_FLOOR + (1 - FLUENCY_FLOOR) * fluency;
+
     var base = (precision + coverage > 0)
       ? (2 * precision * coverage) / (precision + coverage)
       : 0;
-    var accuracy = base * economy * strayFactor;
+    var accuracy = base * economy * strayFactor * fluencyFactor;
 
     return {
       accuracy: Math.round(accuracy * 100),
       precision: Math.round(precision * 100),
       coverage: Math.round(coverage * 100),
       economy: Math.round(economy * 100),
+      fluency: Math.round(fluency * 100),
+      shake: Math.round(shake * 1000) / 1000,
+      shifted: Math.round(Math.hypot(dx, dy) / scale),
       travelRatio: Math.round(ratio * 100) / 100,
       stray: stray,
       errors: errors,
@@ -242,13 +350,19 @@
     if (o.free != null) FREE_FRAC = o.free;
     if (o.strayMean != null) STRAY_MEAN = o.strayMean;
     if (o.strayCost != null) STRAY_COST = o.strayCost;
+    if (o.maxShift != null) MAX_SHIFT = o.maxShift;
+    if (o.fluencyFree != null) FLUENCY_FREE = o.fluencyFree;
+    if (o.fluencyFull != null) FLUENCY_FULL = o.fluencyFull;
+    if (o.fluencyFloor != null) FLUENCY_FLOOR = o.fluencyFloor;
     return current();
   }
 
   function current() {
     return { tol: TOL_FRAC, sharp: SHARPNESS, coverSharp: COVER_SHARPNESS,
              grace: TRAVEL_GRACE, bite: TRAVEL_BITE, free: FREE_FRAC,
-             strayMean: STRAY_MEAN, strayCost: STRAY_COST };
+             strayMean: STRAY_MEAN, strayCost: STRAY_COST,
+             maxShift: MAX_SHIFT, fluencyFree: FLUENCY_FREE,
+             fluencyFull: FLUENCY_FULL, fluencyFloor: FLUENCY_FLOOR };
   }
 
   SG.grade = {

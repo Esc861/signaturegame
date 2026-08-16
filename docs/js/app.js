@@ -142,8 +142,9 @@
 
     $('result').hidden = true;
     $('play-hint').textContent = store.seenIntro()
-      ? 'Trace the grey signature with your finger.'
-      : 'Trace the grey signature. Take your time — it scores accuracy, not speed.';
+      ? 'Keep the line steady and flowing.'
+      : 'Trace the grey signature. A steady, flowing line counts for more than'
+        + ' landing it exactly.';
     store.seenIntro(true);
 
     sizePad(lv);
@@ -180,10 +181,11 @@
     $('res-verdict').className = 'verdict ' + (passed ? 'win' : 'lose');
     $('res-score').textContent = res.accuracy;
 
-    // Name the weakest of the three, so a low score says what went wrong rather
-    // than just how badly.
+    // Name the weakest part, so a low score says what went wrong rather than
+    // just how badly. Steadiness first: it is what an examiner looks at first.
     var note = '';
     if (res.economy < 70) note = ' Too much ink — you drew far further than the signature.';
+    else if (res.fluency < 70) note = ' Your line wavered. Slow down and keep it flowing.';
     else if (res.coverage < res.precision - 12) note = ' You missed parts of it.';
     else if (res.precision < res.coverage - 12) note = ' You drifted off the line.';
 
@@ -191,9 +193,9 @@
       ? 'You needed ' + lv['pass'] + '%.'
       : 'You need ' + lv['pass'] + '% to unlock the next hand.')
       + note + ' Best ' + Math.max(prevBest, res.accuracy) + '%.';
+    $('res-flu').textContent = res.fluency + '%';
     $('res-prec').textContent = res.precision + '%';
     $('res-cov').textContent = res.coverage + '%';
-    $('res-econ').textContent = res.economy + '%';
 
     var wiki = $('res-wiki');
     if (lv.wiki) {

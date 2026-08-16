@@ -401,6 +401,14 @@ body {
 .sw-mid  { background: var(--mid); }
 .sw-bad  { background: var(--accent); }
 
+.examiner {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 46ch;
+}
+
 .readmore { margin: 10px 0 0; font-size: 13px; }
 .readmore a { color: var(--accent); text-decoration: none;
               border-bottom: 1px solid rgba(140,47,34,.35); padding-bottom: 1px; }
