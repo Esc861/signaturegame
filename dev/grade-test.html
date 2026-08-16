@@ -58,15 +58,102 @@
   /* ---------------- synthetic attempts ---------------- */
 
   // Trace straight down the stored contours. For an outline signature this
-  // runs along the *edge* of the ink rather than its middle, so it is a good
-  // attempt rather than a perfect one - which is all we need to test against.
+  // runs along the *edge* of the ink rather than its middle.
   function traced(level) {
     return SG.geom.contours(level).map(function (pts) {
       return pts.map(function (p) { return { x: p.x, y: p.y }; });
     });
   }
 
-  function jitter(strokes, amount, seed) {
+  // What an honest player actually does: follow the middle of the visible
+  // ribbon, once. Built by pushing each contour point inward along its normal
+  // by half the pen width, which collapses both sides of a stroke onto its
+  // centre, and then keeping only the first half of each contour - a ribbon
+  // outline runs out along one edge and back along the other, so half of it is
+  // one complete pass. Without that trim this "honest" baseline silently drew
+  // every signature twice, which hid how the travel budget really behaves.
+  function centreline(level) {
+    if (level.kind === 'centerline') {
+      return SG.geom.contours(level).map(function (pts) {
+        return pts.map(function (p) { return { x: p.x, y: p.y }; });
+      });
+    }
+    return SG.geom.contours(level).map(function (pts) {
+      // Winding must come from the whole contour, before any trimming.
+      var a = 0;
+      for (var k = 0; k < pts.length; k++) {
+        var q = pts[k], r = pts[(k + 1) % pts.length];
+        a += q.x * r.y - r.x * q.y;
+      }
+      // For a counter-clockwise contour the inward normal is (-dy, dx); holes
+      // wind the other way, and their sign flips it back toward the ink.
+      var sign = a > 0 ? 1 : -1;
+      var d = level.pen * 0.5;
+      var mid = pts.map(function (p, i) {
+        var prev = pts[(i - 1 + pts.length) % pts.length];
+        var next = pts[(i + 1) % pts.length];
+        var dx = next.x - prev.x, dy = next.y - prev.y;
+        var L = Math.hypot(dx, dy) || 1;
+        return { x: p.x + sign * (-dy / L) * d, y: p.y + sign * (dx / L) * d };
+      });
+      return mid.slice(0, Math.max(2, Math.ceil(mid.length / 2)));
+    });
+  }
+
+  // The exploit: back-and-forth horizontal strokes across the card, making no
+  // attempt at the signature. Signatures are mostly horizontal ink, so a dense
+  // zigzag crosses nearly all of it (high coverage) while staying within
+  // tolerance of *something* (respectable precision).
+  function zigzag(level, rows) {
+    var out = [];
+    var pad = level.h * 0.04;
+    for (var r = 0; r < rows; r++) {
+      var y = pad + (level.h - 2 * pad) * (r / Math.max(1, rows - 1));
+      var pts = [];
+      var steps = 26;
+      for (var s = 0; s <= steps; s++) {
+        var x = level.w * (s / steps);
+        pts.push({ x: r % 2 ? level.w - x : x, y: y });
+      }
+      out.push(pts);
+    }
+    return out;
+  }
+
+  // One continuous scrawl that follows the signature's overall path but pays no
+  // attention to its shape - the other way people try to game a tracing game.
+  function overscribble(level, amplitude) {
+    return SG.geom.contours(level).map(function (pts) {
+      var out = [];
+      for (var i = 0; i < pts.length; i++) {
+        var p = pts[i];
+        var swing = (i % 2 ? 1 : -1) * level.h * amplitude;
+        out.push({ x: p.x, y: p.y + swing });
+        out.push({ x: p.x, y: p.y - swing });
+      }
+      return out;
+    });
+  }
+
+  // A wavering hand, not white noise: a slow bounded drift away from the line
+  // and back. Per-point random jitter was the wrong model - it is a tremor, it
+  // adds real distance to the pen's travel, and testing against it made the
+  // scoring look far harsher on honest tracing than it is.
+  function wobble(strokes, amount, seed) {
+    var s = seed || 1;
+    function rnd() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }
+    return strokes.map(function (pts) {
+      var p1 = rnd() * 6.283, p2 = rnd() * 6.283;
+      var f1 = 0.05 + rnd() * 0.05, f2 = 0.02 + rnd() * 0.03;
+      return pts.map(function (p, i) {
+        return { x: p.x + Math.sin(i * f1 + p1) * amount,
+                 y: p.y + Math.sin(i * f2 + p2) * amount };
+      });
+    });
+  }
+
+  // High-frequency shake, which genuinely does add pen travel.
+  function tremor(strokes, amount, seed) {
     var s = seed || 1;
     function rnd() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff - 0.5; }
     return strokes.map(function (pts) {
@@ -112,7 +199,12 @@
                + '  ' + name + (detail ? '   ' + detail : ''));
   }
 
-  function pct(r) { return r.accuracy + '% (p' + r.precision + '/c' + r.coverage + ')'; }
+  function pct(r) {
+    return pad4(r.accuracy + '%') + ' (p' + pad3(r.precision) + ' c' + pad3(r.coverage)
+         + ' e' + pad3(r.economy) + ' ' + (r.travelRatio || 0).toFixed(1) + 'x)';
+  }
+  function pad3(n) { return ('  ' + n).slice(-3); }
+  function pad4(s) { return ('    ' + s).slice(-4); }
 
   // A spread of shapes: fine and fat pens, simple and tangled, both kinds.
   var sample = ['Q937', 'Q9068', 'Q5582', 'Q7322', 'Q5682', 'Q1615'];
@@ -121,47 +213,94 @@
 
   lines.push('grading ' + picked.length + ' signatures\n');
 
-  var diagAvg = 0;
-  picked.forEach(function (e) {
-    var lv = e.lv, diag = SG.geom.diagonal(lv);
-    diagAvg += diag;
-    var base = traced(lv);
+  var worstCheat = 0, worstCheatName = '', minHonest = 100, minHonestName = '';
 
-    var rTrace = SG.grade.score(lv, base);
-    var rNear  = SG.grade.score(lv, jitter(base, diag * 0.006, 11));
-    var rLoose = SG.grade.score(lv, jitter(base, diag * 0.030, 13));
-    var rWild  = SG.grade.score(lv, jitter(base, diag * 0.090, 17));
-    var rShift = SG.grade.score(lv, shifted(base, diag * 0.05, 0));
-    var rHalf  = SG.grade.score(lv, partial(base, 0.35));
+  picked.forEach(function (e) {
+    var lv = e.lv, diag = SG.geom.diagonal(lv), need = lv['pass'];
+    var mid = centreline(lv);
+
+    var rGood  = SG.grade.score(lv, mid);
+    var rNear  = SG.grade.score(lv, wobble(mid, diag * 0.008, 11));
+    var rLoose = SG.grade.score(lv, wobble(mid, diag * 0.022, 13));
+    var rWild  = SG.grade.score(lv, wobble(mid, diag * 0.060, 17));
+    var rShake = SG.grade.score(lv, tremor(mid, diag * 0.010, 19));
+    var rShift = SG.grade.score(lv, shifted(mid, diag * 0.05, 0));
+    var rHalf  = SG.grade.score(lv, partial(mid, 0.35));
+    var rEdge  = SG.grade.score(lv, traced(lv));
+    var rTwice = SG.grade.score(lv, mid.concat(mid));   // went over it again
+
+    // the cheats
+    var rZig6  = SG.grade.score(lv, zigzag(lv, 6));
+    var rZig12 = SG.grade.score(lv, zigzag(lv, 12));
+    var rZig24 = SG.grade.score(lv, zigzag(lv, 24));
+    var rOver  = SG.grade.score(lv, overscribble(lv, 0.05));
     var rScrib = SG.grade.score(lv, scribble(lv, 6, 23));
     var rEmpty = SG.grade.score(lv, []);
 
-    lines.push(lv.name + '  [' + lv.kind + ', pen ' + lv.pen + ', pass ' + lv['pass'] + '%]');
-    lines.push('    on the line   ' + pct(rTrace));
+    lines.push(lv.name + '  [' + lv.kind + ', pen ' + lv.pen + ', needs ' + need + '%]');
+    lines.push('  honest');
+    lines.push('    centreline    ' + pct(rGood));
     lines.push('    slight wobble ' + pct(rNear));
     lines.push('    loose         ' + pct(rLoose));
     lines.push('    wild          ' + pct(rWild));
+    lines.push('    tremor        ' + pct(rShake));
     lines.push('    shifted 5%    ' + pct(rShift));
     lines.push('    only 35%      ' + pct(rHalf));
-    lines.push('    scribble      ' + pct(rScrib));
+    lines.push('    traced edges  ' + pct(rEdge));
+    lines.push('    went over 2x  ' + pct(rTwice));
+    lines.push('  cheats');
+    lines.push('    zigzag x6     ' + pct(rZig6));
+    lines.push('    zigzag x12    ' + pct(rZig12));
+    lines.push('    zigzag x24    ' + pct(rZig24));
+    lines.push('    overscribble  ' + pct(rOver));
+    lines.push('    random scrawl ' + pct(rScrib));
 
-    check(lv.name + ': tracing the line scores well', rTrace.accuracy >= 55,
-          'got ' + rTrace.accuracy);
+    var cheats = [['zigzag x6', rZig6], ['zigzag x12', rZig12],
+                  ['zigzag x24', rZig24], ['overscribble', rOver],
+                  ['random scrawl', rScrib]];
+    cheats.forEach(function (c) {
+      check(lv.name + ': ' + c[0] + ' must not pass', c[1].accuracy < need,
+            c[1].accuracy + ' vs needs ' + need);
+      if (c[1].accuracy > worstCheat) {
+        worstCheat = c[1].accuracy;
+        worstCheatName = lv.name + ' / ' + c[0] + ' (needs ' + need + ')';
+      }
+    });
+
+    check(lv.name + ': an honest trace still clears', rGood.accuracy >= need,
+          rGood.accuracy + ' vs needs ' + need);
+    check(lv.name + ': a slightly wobbly trace still clears', rNear.accuracy >= need,
+          rNear.accuracy + ' vs needs ' + need);
     check(lv.name + ': accuracy falls as wobble grows',
           rNear.accuracy > rLoose.accuracy && rLoose.accuracy > rWild.accuracy,
           rNear.accuracy + ' > ' + rLoose.accuracy + ' > ' + rWild.accuracy);
-    check(lv.name + ': a shift is penalised', rShift.accuracy < rTrace.accuracy,
-          rShift.accuracy + ' < ' + rTrace.accuracy);
+    check(lv.name + ': a shift is penalised', rShift.accuracy < rGood.accuracy,
+          rShift.accuracy + ' < ' + rGood.accuracy);
     check(lv.name + ': missing most of it wrecks coverage',
-          rHalf.coverage < rTrace.coverage * 0.75,
-          'coverage ' + rHalf.coverage + ' vs ' + rTrace.coverage);
-    check(lv.name + ': scribbling wrecks precision', rScrib.precision < 55,
-          'precision ' + rScrib.precision);
-    check(lv.name + ': scribbling scores below tracing',
-          rScrib.accuracy < rTrace.accuracy, rScrib.accuracy + ' < ' + rTrace.accuracy);
+          rHalf.coverage < rGood.coverage * 0.75,
+          'coverage ' + rHalf.coverage + ' vs ' + rGood.coverage);
+    check(lv.name + ': a wavering hand keeps its economy', rLoose.economy >= 85,
+          'economy ' + rLoose.economy);
+    check(lv.name + ': going over it twice still clears', rTwice.accuracy >= need,
+          rTwice.accuracy + ' vs needs ' + need);
+    check(lv.name + ': tracing both edges still clears', rEdge.accuracy >= need,
+          rEdge.accuracy + ' vs needs ' + need);
+    // Economy is not the only defence - precision already ruins a scribble that
+    // wanders off the line - so this only asserts that gross overdrawing is
+    // charged for, not that every cheat is stopped by economy alone.
+    check(lv.name + ': gross overdrawing costs economy', rOver.economy < 50,
+          'economy ' + rOver.economy + ' at ' + rOver.travelRatio + 'x length');
     check(lv.name + ': nothing drawn scores zero', rEmpty.accuracy === 0);
+
+    if (rGood.accuracy < minHonest) {
+      minHonest = rGood.accuracy;
+      minHonestName = lv.name + ' (needs ' + need + ')';
+    }
     lines.push('');
   });
+
+  lines.push('best cheat anywhere:  ' + worstCheat + '%  ' + worstCheatName);
+  lines.push('worst honest trace:   ' + minHonest + '%  ' + minHonestName);
 
   document.getElementById('out').innerHTML = lines.join('\n');
   var sum = document.getElementById('summary');

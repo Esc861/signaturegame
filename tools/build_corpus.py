@@ -211,10 +211,18 @@ def score_difficulty(entries):
 def pass_mark(difficulty):
     """Accuracy needed to clear a level.
 
-    Eased against difficulty so that a dense, tangled signature doesn't become
-    a wall: the hardest ask ~62%, the simplest ~84%.
+    Calibrated against the scorer rather than guessed, by running every level in
+    dev/grade-test.html against a realistic traced attempt and against the ways
+    people try to cheat a tracing game. Those two populations separate cleanly:
+    a decent attempt scores no lower than 70, and the best scribble anywhere
+    reaches 65. The band below sits between them, so no scribble clears any
+    level and no honest attempt fails one.
+
+    Still eased against difficulty, so a dense, tangled hand is not a wall - but
+    over a much narrower range than the spread of the scores themselves, which
+    turns out not to track difficulty closely.
     """
-    return int(round(84 - 0.22 * difficulty))
+    return int(round(max(66.0, min(76.0, 76.0 - 0.12 * difficulty))))
 
 
 # --------------------------------------------------------------------------

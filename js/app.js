@@ -173,12 +173,21 @@
     $('res-verdict').textContent = passed ? 'Cleared' : 'Not yet';
     $('res-verdict').className = 'verdict ' + (passed ? 'win' : 'lose');
     $('res-score').textContent = res.accuracy;
-    $('res-need').textContent = passed
+
+    // Name the weakest of the three, so a low score says what went wrong rather
+    // than just how badly.
+    var note = '';
+    if (res.economy < 70) note = ' Too much ink — you drew far further than the signature.';
+    else if (res.coverage < res.precision - 12) note = ' You missed parts of it.';
+    else if (res.precision < res.coverage - 12) note = ' You drifted off the line.';
+
+    $('res-need').textContent = (passed
       ? 'You needed ' + lv['pass'] + '%.'
-      : 'You need ' + lv['pass'] + '% to unlock the next hand.';
+      : 'You need ' + lv['pass'] + '% to unlock the next hand.')
+      + note + ' Best ' + Math.max(prevBest, res.accuracy) + '%.';
     $('res-prec').textContent = res.precision + '%';
     $('res-cov').textContent = res.coverage + '%';
-    $('res-best').textContent = Math.max(prevBest, res.accuracy) + '%';
+    $('res-econ').textContent = res.economy + '%';
 
     var last = current.index >= current.theme.levels.length - 1;
     var next = $('btn-next');
@@ -193,8 +202,11 @@
   function drawResultMap(level, strokes, res) {
     var c = $('res-map');
     // Fit the *box* to the signature rather than letterboxing a square hand
-    // like Pasteur's inside a wide strip.
-    var boxW = c.parentNode.clientWidth;
+    // like Pasteur's inside a wide strip. Measure the canvas at its CSS width
+    // rather than the parent's clientWidth, which includes the sheet's padding
+    // and so overflowed the panel sideways.
+    c.style.width = '100%';
+    var boxW = c.getBoundingClientRect().width;
     var maxH = Math.max(140, Math.round(window.innerHeight * 0.34));
     var h = Math.max(120, Math.min(boxW * (level.h / level.w), maxH));
     c.style.height = h + 'px';

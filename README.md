@@ -18,7 +18,10 @@ scripts hanging off a `window.SG` namespace instead of ES modules, which
 browsers refuse to load over `file://`.
 
 Served over HTTP it also registers a service worker, so it installs to a phone
-home screen and runs offline.
+home screen and runs offline. That cache is cache-first, so **bump `CACHE` in
+`sw.js` whenever you change a shipped file** — otherwise returning players keep
+the old version. It will happily serve you stale code while you are developing,
+too; unregister it in DevTools if edits stop taking effect.
 
 ## Layout
 
@@ -40,21 +43,51 @@ dev/grade-test.html       grader harness with a self-running check suite
 ## How scoring works
 
 Both the target and the attempt are rasterized to binary ink masks, and each
-gets a distance field. That yields two numbers:
+gets a distance field. That yields three numbers:
 
 - **precision** — how close the player's ink sits to the target's
 - **coverage** — how much of the target's ink the player actually reached
+- **economy** — whether they got there without drawing far further than the
+  signature is long
 
-The score is their **harmonic mean**. That is what makes it hard to cheat:
-scribbling over the whole card destroys precision, and carefully tracing one
-flourish while skipping the rest destroys coverage.
+Precision and coverage combine as a **harmonic mean**, then economy scales the
+result.
 
-Comparing pixels rather than paths also makes stroke order, stroke direction and
+All three are needed. Precision and coverage alone were exploitable, and badly:
+scribbling back and forth across the card scored 80%+. Signatures are mostly
+horizontal ink, so a dense zigzag crosses nearly all of it — full marks for
+coverage — while staying within tolerance of *something* simply by remaining
+inside the signature's own bounding box. Precision is a *mean* over the player's
+ink and is therefore blind to how much ink there is: drawing ten times as much at
+the same average closeness scores identically. Economy supplies that dimension.
+
+Economy measures pen **travel**, not inked area. Area was tried first and was
+wrong — a wavering hand covers more area without drawing any further, so it
+punished shaky tracing, which precision already accounts for. The penalty grows
+with the *square* of the excess past a grace of 1.6×, so going back over the
+whole signature a second time costs a few points while a scribble collapses.
+
+Precision also falls off on a power curve rather than linearly, so drifting costs
+progressively more.
+
+Comparing pixels rather than paths makes stroke order, stroke direction and
 pen-lift count irrelevant — which matters, because almost every Commons file
 stores a traced *outline* of the ink rather than the original pen path.
 
 Each level ships a measured pen width, and the grader inks the player's line to
 match, so precision and coverage stay symmetric on both fine and fat hands.
+
+### Pass marks
+
+`pass_mark` in `tools/build_corpus.py` is calibrated against the scorer rather
+than guessed, by running every level against a realistic traced attempt and
+against the ways people try to cheat a tracing game. The two populations
+separate cleanly: a decent attempt scores no lower than 70, and the best
+scribble anywhere reaches 65. Thresholds sit in the band between, 66–76.
+
+**If you change the scoring constants, recalibrate.** The sweep at the bottom of
+`dev/grade-test.html` is the tool for it; the numbers to keep an eye on are
+"best cheat anywhere" and "worst honest trace", which must not cross.
 
 ## Rebuilding the corpus
 

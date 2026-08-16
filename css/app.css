@@ -317,6 +317,9 @@ body {
 #res-map {
   display: block;
   width: 100%;
+  /* Hard guard: JS sets an explicit pixel width, and measures before the
+     sheet's own scrollbar appears, so without this it can overhang. */
+  max-width: 100%;
   height: 150px;
   margin: 0 auto;              /* JS narrows it to the signature's aspect */
   background: var(--card);
