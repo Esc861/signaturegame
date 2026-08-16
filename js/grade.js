@@ -38,9 +38,14 @@
 
   // Precision falls off as a power curve rather than linearly, so drifting
   // costs progressively more: at half the tolerance a pixel keeps a quarter of
-  // its credit, not half. Coverage stays linear - it asks whether the player
-  // reached the ink at all, which is a yes-or-no sort of question.
+  // its credit, not half.
   var SHARPNESS = 2;
+
+  // Coverage stays linear. Sharpening it was tried, to stop a scribble
+  // claiming near-perfect coverage by crossing the ink often, and measured
+  // worse: it cost honest traces several points and barely touched the
+  // scribbles, which lean on precision and travel instead.
+  var COVER_SHARPNESS = 1;
 
   // How much further than the signature the player may draw before economy
   // starts to bite, and how sharply it bites after that. Because the penalty
@@ -61,8 +66,13 @@
   var FREE_FRAC = 0.3;
 
   // A stroke whose average point is this far off the line is not part of an
-  // attempt at the signature.
-  var STRAY_MEAN = 0.55;
+  // attempt at the signature. Measured, not guessed: across the corpus an
+  // honestly traced stroke never averages worse than 0.25 even with a shaky
+  // hand, while the strokes of a scribble sit at 0.4-0.7. The old threshold of
+  // 0.55 sat inside the scribbles' own range and so caught almost none of them
+  // - on a dense, fat hand like Rembrandt's, where a line drawn anywhere is
+  // near some ink, it caught 1 stroke in 20.
+  var STRAY_MEAN = 0.35;
   var STRAY_COST = 0.06;   // scored penalty per stray stroke
   var STRAY_FLOOR = 0.55;  // ...but stray strokes alone cannot zero a score
 
@@ -152,7 +162,7 @@
 
     sum = 0;
     for (i = 0; i < target.length; i++) {
-      if (target[i]) sum += falloff(dUser[i], free, tol);
+      if (target[i]) sum += Math.pow(falloff(dUser[i], free, tol), COVER_SHARPNESS);
     }
     var coverage = sum / target.count;
 
@@ -220,12 +230,32 @@
     return out;
   }
 
+  /* Calibration hook. The constants above are only defensible against measured
+   * behaviour, so dev/grade-test.html needs to sweep them without editing this
+   * file between runs. Not used by the game itself. */
+  function tune(o) {
+    if (o.tol != null) TOL_FRAC = o.tol;
+    if (o.sharp != null) SHARPNESS = o.sharp;
+    if (o.coverSharp != null) COVER_SHARPNESS = o.coverSharp;
+    if (o.grace != null) TRAVEL_GRACE = o.grace;
+    if (o.bite != null) TRAVEL_BITE = o.bite;
+    if (o.free != null) FREE_FRAC = o.free;
+    if (o.strayMean != null) STRAY_MEAN = o.strayMean;
+    if (o.strayCost != null) STRAY_COST = o.strayCost;
+    return current();
+  }
+
+  function current() {
+    return { tol: TOL_FRAC, sharp: SHARPNESS, coverSharp: COVER_SHARPNESS,
+             grace: TRAVEL_GRACE, bite: TRAVEL_BITE, free: FREE_FRAC,
+             strayMean: STRAY_MEAN, strayCost: STRAY_COST };
+  }
+
   SG.grade = {
     score: score,
     RES: RES,
-    TOL_FRAC: TOL_FRAC,
-    SHARPNESS: SHARPNESS,
-    TRAVEL_GRACE: TRAVEL_GRACE,
-    targetTravel: targetTravel
+    targetTravel: targetTravel,
+    tune: tune,
+    current: current
   };
 })(window.SG || (window.SG = {}));

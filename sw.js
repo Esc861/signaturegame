@@ -4,7 +4,7 @@
  * can simply be precached wholesale. Bump CACHE when any of them change -
  * the old cache is dropped on activate.
  */
-var CACHE = 'forgers-archive-v2';
+var CACHE = 'forgers-archive-v3';
 
 var ASSETS = [
   './',

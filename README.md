@@ -68,7 +68,10 @@ with the *square* of the excess past a grace of 1.6×, so going back over the
 whole signature a second time costs a few points while a scribble collapses.
 
 Precision also falls off on a power curve rather than linearly, so drifting costs
-progressively more.
+progressively more, and strokes that spend most of their length away from the
+signature are charged for individually. That threshold is measured rather than
+guessed: across the corpus an honestly traced stroke never averages worse than
+0.25 off, while the strokes of a scribble sit at 0.4–0.7.
 
 Comparing pixels rather than paths makes stroke order, stroke direction and
 pen-lift count irrelevant — which matters, because almost every Commons file
@@ -85,9 +88,19 @@ against the ways people try to cheat a tracing game. The two populations
 separate cleanly: a decent attempt scores no lower than 70, and the best
 scribble anywhere reaches 65. Thresholds sit in the band between, 66–76.
 
-**If you change the scoring constants, recalibrate.** The sweep at the bottom of
-`dev/grade-test.html` is the tool for it; the numbers to keep an eye on are
-"best cheat anywhere" and "worst honest trace", which must not cross.
+**If you change the scoring constants, recalibrate.** Serve the directory, open
+`dev/grade-test.html`, and press **Run full sweep**: it puts all 72 levels
+through five honest attempts and ten cheats and reports the two numbers that
+matter — *best cheat anywhere* and *worst honest attempt*. Those populations
+must not cross. `SG.grade.tune({...})` from the console changes the constants
+live, so a parameter search does not mean editing files between runs.
+
+As it stands: **720 cheat attempts, none of them pass**, the best reaching 65%
+against a 71% bar. Clean, steady, doubled-back and edge-traced attempts clear
+every level. A deliberately shaky attempt — wandering about two pen widths off
+the line — fails on 15 of the 72, which is a difficulty judgement rather than a
+correctness one; `pass_mark` is the single line to change if that feels wrong on
+a real phone.
 
 ## Rebuilding the corpus
 
