@@ -45,27 +45,126 @@
     }
   }
 
-  /* Player strokes, inked at a given width in signature units. */
-  function paintStrokes(ctx, strokes, width, t, style) {
+  /* The nib. A real pen lands and leaves the paper rather than switching on, so
+   * a stroke is thin for the first and last moment of its travel.
+   *
+   * This is a *display* flourish and the grader must not see it: the score is
+   * computed from a line of one flat width, which is what makes precision and
+   * coverage symmetric. Hence the opt-in argument - pad.js passes it, grade.js
+   * does not. The two only disagree over a nib-and-a-half at each end, and only
+   * by the drawn line being slightly thinner than the scored one, so what is on
+   * screen is never wider than what was actually credited. */
+  var TAPER_NIB = 1.6;        // ramp length, in nib widths
+  var TAPER_TIP = 0.34;       // width at the very tip, as a fraction of the nib
+  var TAPER_MAX = 0.28;       // ...but never more than this much of the stroke
+  var CORE_ALPHA = 0.3;       // a wetter, darker centre to the line
+  var CORE_FRAC = 0.45;
+
+  function widthAt(s, len, ramp, w) {
+    if (ramp <= 0) return w;
+    var d = s < len - s ? s : len - s;
+    if (d >= ramp) return w;
+    // sqrt so the nib swells quickly and then holds, the way a pen bites.
+    return w * (TAPER_TIP + (1 - TAPER_TIP) * Math.sqrt(d / ramp));
+  }
+
+  /* One stroke, in view coordinates, with tapered ends.
+   *
+   * Only the two ramps are drawn segment by segment; everything between them
+   * goes down as a single full-width path. Stroking every segment separately
+   * would be a few hundred paths per stroke on every frame of live drawing. */
+  function taperedStroke(ctx, v, w) {
+    var n = v.length, seg = new Array(n - 1), len = 0, j, d;
+    for (j = 1; j < n; j++) {
+      d = Math.hypot(v[j].x - v[j - 1].x, v[j].y - v[j - 1].y);
+      seg[j - 1] = d;
+      len += d;
+    }
+    if (len < 1e-6) { dot(ctx, v[0], w); return; }
+
+    var ramp = Math.min(TAPER_NIB * w, len * TAPER_MAX);
+    var step = Math.max(1.5, w * 0.45);
+    var body = null, s = 0;
+
+    function flush() {
+      if (!body || body.length < 2) { body = null; return; }
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(body[0].x, body[0].y);
+      for (var k = 1; k < body.length; k++) ctx.lineTo(body[k].x, body[k].y);
+      ctx.stroke();
+      body = null;
+    }
+
+    for (j = 1; j < n; j++) {
+      var a = v[j - 1], b = v[j], L = seg[j - 1];
+      if (s >= ramp && s + L <= len - ramp) {
+        if (!body) body = [a];
+        body.push(b);
+      } else {
+        flush();
+        var parts = Math.max(1, Math.ceil(L / step));
+        for (var k = 0; k < parts; k++) {
+          var f0 = k / parts, f1 = (k + 1) / parts;
+          ctx.lineWidth = widthAt(s + L * (f0 + f1) / 2, len, ramp, w);
+          ctx.beginPath();
+          ctx.moveTo(a.x + (b.x - a.x) * f0, a.y + (b.y - a.y) * f0);
+          ctx.lineTo(a.x + (b.x - a.x) * f1, a.y + (b.y - a.y) * f1);
+          ctx.stroke();
+        }
+      }
+      s += L;
+    }
+    flush();
+  }
+
+  function dot(ctx, p, w) {
+    // A tap still leaves a dot; round caps need a zero-length segment.
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  }
+
+  /* Player strokes, inked at a given width in signature units.
+   *
+   * `opts` is the pen dressing: {taper: true, core: '#150e07'}. Absent, the line
+   * is a flat band of one width - which is exactly what the grader wants. */
+  function paintStrokes(ctx, strokes, width, t, style, opts) {
+    var w = Math.max(1, width * t.scale);
+    var taper = opts && opts.taper;
     ctx.strokeStyle = style;
-    ctx.lineWidth = Math.max(1, width * t.scale);
+    ctx.lineWidth = w;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     for (var i = 0; i < strokes.length; i++) {
       var pts = strokes[i];
       if (!pts.length) continue;
-      ctx.beginPath();
-      if (pts.length === 1) {
-        // A tap still leaves a dot; round caps need a zero-length segment.
-        ctx.moveTo(t.ox + pts[0].x * t.scale, t.oy + pts[0].y * t.scale);
-        ctx.lineTo(t.ox + pts[0].x * t.scale, t.oy + pts[0].y * t.scale);
-      } else {
-        ctx.moveTo(t.ox + pts[0].x * t.scale, t.oy + pts[0].y * t.scale);
-        for (var j = 1; j < pts.length; j++) {
-          ctx.lineTo(t.ox + pts[j].x * t.scale, t.oy + pts[j].y * t.scale);
-        }
+      var v = new Array(pts.length);
+      for (var j = 0; j < pts.length; j++) {
+        v[j] = { x: t.ox + pts[j].x * t.scale, y: t.oy + pts[j].y * t.scale };
       }
-      ctx.stroke();
+      if (v.length === 1) { dot(ctx, v[0], w); continue; }
+      if (!taper) {
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ctx.moveTo(v[0].x, v[0].y);
+        for (j = 1; j < v.length; j++) ctx.lineTo(v[j].x, v[j].y);
+        ctx.stroke();
+        continue;
+      }
+      taperedStroke(ctx, v, w);
+      // A darker, narrower core down the middle, so the line reads as ink
+      // soaking into paper rather than as a flat band of colour.
+      if (opts.core) {
+        var alpha = ctx.globalAlpha;
+        ctx.strokeStyle = opts.core;
+        ctx.globalAlpha = alpha * CORE_ALPHA;
+        taperedStroke(ctx, v, w * CORE_FRAC);
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = style;
+      }
     }
   }
 

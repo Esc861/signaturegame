@@ -5,8 +5,11 @@
 
 :root {
   --paper:   #f4efe4;
+  --paper-lit: #fbf7ee;      /* the sheet is not evenly lit */
+  --paper-dim: #e8dfcc;
   --card:    #fffdf7;
   --ink:     #2b2118;
+  --ink-core: #150d06;       /* the wetter middle of a drawn line */
   --guide:   #d5cab2;
   --rule:    #cbbfa8;
   --muted:   #7d6d57;
@@ -15,7 +18,20 @@
   --mid:     #b07a14;
   --gold:    #a8842c;
 
-  --pad-h: clamp(230px, 42vh, 420px);
+  /* Paper, built out of gradients rather than an image so it costs nothing to
+     load and survives being opened off the filesystem. Two sets of fibres
+     crossing at a shallow angle, then flecks of pulp on top. Everything is
+     within a few percent of opaque - at full strength it reads as a dirty
+     screen rather than as paper. */
+  --fibres:
+    repeating-linear-gradient(96deg,
+      rgba(148,124,88,.030) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(4deg,
+      rgba(148,124,88,.024) 0 1px, transparent 1px 7px),
+    radial-gradient(circle at 20% 30%, rgba(126,100,62,.07) 0 1.1px, transparent 1.2px),
+    radial-gradient(circle at 70% 65%, rgba(126,100,62,.055) 0 1px, transparent 1.1px);
+  --fibre-size: auto, auto, 37px 37px, 53px 53px;
+
   --radius: 10px;
   --serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -45,23 +61,42 @@ html, body {
 body {
   min-height: 100vh;
   min-height: 100dvh;
-  /* A faint tooth to the paper. Cheap, and it keeps large flat areas from
-     looking like a plain white app. */
-  background-image:
-    radial-gradient(circle at 20% 30%, rgba(160,140,105,.06) 0 1px, transparent 1px),
-    radial-gradient(circle at 70% 65%, rgba(160,140,105,.05) 0 1px, transparent 1px);
-  background-size: 37px 37px, 53px 53px;
+  /* Tooth, then the wash of light across the sheet underneath it. */
+  background-image: var(--fibres),
+    radial-gradient(125% 95% at 50% -10%,
+      var(--paper-lit) 0%, var(--paper) 48%, var(--paper-dim) 100%);
+  background-size: var(--fibre-size), 100% 100%;
+  background-attachment: scroll, scroll, scroll, scroll, fixed;
 }
 
 #app {
   max-width: 620px;
   margin: 0 auto;
-  padding: 0 18px env(safe-area-inset-bottom);
+  padding: 0 max(18px, env(safe-area-inset-left))
+             env(safe-area-inset-bottom)
+             max(18px, env(safe-area-inset-right));
 }
 
 .screen { display: none; }
 .screen.on { display: block; }
 [hidden] { display: none !important; }
+
+/* The game is played sideways, so the lists get a landscape shape too rather
+   than a phone-width column stranded in the middle of a wide screen. */
+@media (min-width: 720px) {
+  #app { max-width: 940px; }
+  .tracks { grid-template-columns: 1fr 1fr; }
+  .levels { display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; }
+}
+
+/* Landscape on a phone is short as well as wide: the standing vertical rhythm
+   spends most of the screen before anything useful appears. */
+@media (max-height: 560px) {
+  .masthead { padding: 20px 2px 10px; }
+  .masthead h1 { font-size: clamp(38px, 8vw, 56px); }
+  .lede { margin-top: 10px; }
+  .bar { padding: 14px 0 10px; }
+}
 
 /* ---------------------------------------------------------------- home */
 
@@ -95,20 +130,33 @@ body {
 
 .tracks { display: grid; gap: 10px; padding: 8px 0 20px; }
 
+/* Everything that is meant to read as a card is a slip of the same paper: warm
+   gradient, a lit top edge, and enough of a shadow to lift it off the page. */
+.track, .level, .breakdown li, #res-map {
+  background-color: var(--card);
+  background-image:
+    linear-gradient(178deg, #fffefb 0%, #fdfaf2 60%, #f7f1e3 100%);
+  border: 1px solid rgba(163, 146, 116, .55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .85),
+    0 1px 2px rgba(74, 57, 36, .06);
+}
+
 .track {
   display: block;
   width: 100%;
   text-align: left;
-  border: 1px solid var(--rule);
-  background: var(--card);
   border-radius: var(--radius);
   padding: 15px 16px;
   cursor: pointer;
   font: inherit;
   color: inherit;
-  transition: border-color .15s, transform .08s;
+  transition: border-color .15s, transform .08s, box-shadow .15s;
 }
-.track:active { transform: scale(.994); }
+.track:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85);
+}
 .track:hover { border-color: var(--muted); }
 
 .track-top { display: flex; align-items: baseline; gap: 10px; }
@@ -180,14 +228,17 @@ body {
   text-align: left;
   font: inherit;
   color: inherit;
-  background: var(--card);
-  border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: 12px 14px;
   margin-bottom: 8px;
   cursor: pointer;
 }
-.level[disabled] { cursor: default; opacity: .5; background: transparent; }
+.level[disabled] {
+  cursor: default;
+  opacity: .5;
+  background: transparent;
+  box-shadow: none;
+}
 .level .idx {
   flex: none;
   width: 24px;
@@ -231,28 +282,62 @@ body {
 
 /* --------------------------------------------------------------- play */
 
-.screen-play.on { display: flex; flex-direction: column; min-height: 100dvh; }
-.bar-play { align-items: center; }
-
-.card-wrap {
-  flex: 1;
+/* Play breaks out of the centred column and takes the whole viewport. The card
+   wants every pixel of width it can get, and unlike the lists there is nothing
+   here that reads badly wide. Fixed rather than a tall block so the three rows
+   divide up exactly what the screen has, with no scrolling to find the tools. */
+.screen-play.on {
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
+  /* The card deliberately does NOT bleed into the gutter. It was tried, for a
+     wider drawing surface, and it put the pad's touch-action:none inside the
+     phone's edge-swipe zone, which broke the system back gesture. In landscape
+     those zones are the long edges, so this margin matters more, not less. */
+  padding: 0 max(14px, env(safe-area-inset-right))
+             max(6px, env(safe-area-inset-bottom))
+             max(14px, env(safe-area-inset-left));
+}
+
+.bar-play {
+  align-items: center;
+  padding: 8px 0;
+  margin-bottom: 0;
+}
+.bar-play .back { width: 34px; height: 34px; font-size: 15px; }
+.bar-play .bar-title h2 { margin: 0; font-size: 17px; }
+.bar-play .bar-title p { margin: 1px 0 0; }
+
+.card-wrap {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  /* The card deliberately does NOT bleed into the page gutter. It was tried,
-     for a wider drawing surface, and it put the pad's touch-action:none inside
-     the phone's edge-swipe zone, which broke the system back gesture. The
-     signature gets its extra room from the small margin inside the card
-     instead, where nothing else is competing for the pixels. */
 }
 
 #pad {
   display: block;
-  width: 100%;
-  height: var(--pad-h);
-  background: var(--card);
-  border: 1px solid var(--rule);
+  /* Both dimensions come from JS: the card is sized so that every signature in
+     the corpus is limited by its width, and so lands on screen at one identical
+     scale. See sizePad() in js/app.js. */
+
+  /* A leaf of paper laid on the desk. No border: the ring is drawn as a shadow
+     instead, because a real border sits outside the canvas's own coordinate
+     space and the two ended up a couple of pixels out of step. */
+  background-color: var(--card);
+  background-image: var(--fibres),
+    radial-gradient(130% 150% at 50% -20%, #fffefb 0%, #fdfaf2 55%, #f6f0e1 100%);
+  background-size: var(--fibre-size), 100% 100%;
+  border: 0;
   border-radius: var(--radius);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .9),
+    inset 0 0 22px rgba(150, 122, 80, .07),      /* the sheet cups very slightly */
+    0 0 0 1px rgba(163, 146, 116, .5),
+    0 1px 1px rgba(74, 57, 36, .06),
+    0 10px 20px -10px rgba(74, 57, 36, .3);
   /* Without this the browser claims the gesture and the player scrolls the
      page instead of drawing. */
   touch-action: none;
@@ -280,33 +365,41 @@ body {
 }
 #loupe.on { opacity: 1; }
 
-.hint {
-  margin: 10px 2px 0;
-  font-size: 12.5px;
-  color: var(--muted);
-  text-align: center;
-  min-height: 1.4em;
-}
-
 .tools {
   display: flex;
   gap: 8px;
   padding: 16px 0 max(18px, env(safe-area-inset-bottom));
 }
+.screen-play .tools { padding: 8px 0 0; }
+.screen-play .tool { min-height: 44px; padding: 11px 10px; }
 .tool {
   flex: 1;
   padding: 14px 10px;
   font: inherit;
   font-size: 15px;
-  border: 1px solid var(--rule);
-  background: var(--card);
+  border: 1px solid rgba(163, 146, 116, .6);
+  background: linear-gradient(178deg, #fffefb 0%, #fbf7ec 100%);
   color: var(--ink);
   border-radius: var(--radius);
   cursor: pointer;
   min-height: 48px;          /* comfortable thumb target */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .9),
+    0 1px 2px rgba(74, 57, 36, .09);
 }
-.tool:disabled { opacity: .4; cursor: default; }
-.tool.primary { background: var(--ink); border-color: var(--ink); color: var(--card); flex: 1.5; }
+.tool:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 2px rgba(74, 57, 36, .16);
+}
+.tool:disabled { opacity: .4; cursor: default; box-shadow: none; }
+.tool.primary {
+  background: linear-gradient(178deg, #3a2d21 0%, var(--ink) 100%);
+  border-color: var(--ink);
+  color: #f6efe1;
+  flex: 1.5;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12),
+              0 1px 3px rgba(43, 33, 24, .3);
+}
 .tool.danger { background: none; border-color: var(--accent); color: var(--accent); flex: none; padding: 10px 16px; }
 
 /* ------------------------------------------------------------- result */
@@ -327,13 +420,34 @@ body {
 .sheet-inner {
   width: 100%;
   max-width: 620px;
-  background: var(--paper);
+  /* A second sheet dropped on top of the first. */
+  background-color: var(--paper);
+  background-image: var(--fibres),
+    linear-gradient(178deg, var(--paper-lit) 0%, var(--paper) 70%, var(--paper-dim) 100%);
+  background-size: var(--fibre-size), 100% 100%;
   border-radius: 16px 16px 0 0;
   border-top: 3px solid var(--ink);
+  box-shadow: 0 -8px 26px rgba(43, 33, 24, .22);
   padding: 20px 18px max(20px, env(safe-area-inset-bottom));
   animation: rise .22s ease-out;
   max-height: 92dvh;
   overflow-y: auto;
+}
+
+@media (min-width: 640px) {
+  .sheet { align-items: center; }
+  .sheet-inner {
+    max-width: min(94vw, 940px);
+    max-height: 94dvh;
+    border-radius: 14px;
+    border: 3px solid var(--ink);
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    column-gap: 20px;
+    align-items: start;
+  }
+  .sheet-tools { grid-column: 1 / -1; }
 }
 
 .verdict {
@@ -365,8 +479,6 @@ body {
   max-width: 100%;
   height: 150px;
   margin: 0 auto;              /* JS narrows it to the signature's aspect */
-  background: var(--card);
-  border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
 
@@ -379,8 +491,6 @@ body {
 }
 .breakdown li {
   flex: 1;
-  background: var(--card);
-  border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: 9px 6px;
   text-align: center;
@@ -432,6 +542,60 @@ body {
 .credits b, .credits .who { color: var(--ink); font-weight: 600; }
 .credits a { color: var(--muted); }
 .credits .who { text-decoration: none; border-bottom: 1px solid var(--rule); }
+
+/* --------------------------------------------------------------- gate */
+
+body.gated { overflow: hidden; }
+
+#gate {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper);
+  background-image: radial-gradient(120% 100% at 50% 0%,
+                    var(--paper-lit) 0%, var(--paper) 52%, var(--paper-dim) 100%);
+  padding: 24px max(24px, env(safe-area-inset-left))
+           24px max(24px, env(safe-area-inset-right));
+  text-align: center;
+}
+.gate-inner { max-width: 34ch; }
+/* Scoped past the generic paragraph rule below, which is otherwise later in the
+   cascade at the same specificity and wins. */
+.gate-inner .gate-mark {
+  margin: 0 0 14px;
+  font-family: var(--script);
+  font-size: 58px;
+  line-height: .82;
+  color: var(--ink);
+}
+.gate-inner h2 {
+  margin: 18px 0 8px;
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 600;
+}
+.gate-inner p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.gate-inner .tool { margin-top: 20px; flex: none; padding: 11px 20px; }
+
+/* A phone turning on its side. Cheaper and steadier than an icon, and it says
+   the one thing the copy is asking for. */
+.gate-phone {
+  display: block;
+  width: 40px;
+  height: 66px;
+  margin: 0 auto;
+  border: 2.5px solid var(--ink);
+  border-radius: 7px;
+  animation: turnover 3s ease-in-out infinite;
+}
+@keyframes turnover {
+  0%, 20%   { transform: rotate(0deg); }
+  45%, 80%  { transform: rotate(-90deg); }
+  100%      { transform: rotate(0deg); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }

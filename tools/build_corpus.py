@@ -23,6 +23,12 @@ import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Half the corpus has an accent in it, and a redirected console on Windows
+# defaults to cp1252, which turns a routine progress line into a traceback that
+# loses the whole run.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 import geometry
 import raster
 import sources
@@ -36,7 +42,22 @@ APP = os.path.join(ROOT, "docs")
 BOX = 1000.0          # normalized long side
 RDP_EPS = 1.1         # simplification tolerance, in BOX units
 PER_THEME = 16        # levels per track
-TRY_PER_THEME = 60    # candidates to attempt, to survive conversion failures
+TRY_PER_THEME = 260   # candidates to attempt, to survive conversion failures
+
+# Minimum width-to-height ratio. Wide-only is a fairness rule, not taste.
+#
+# The game is played on a landscape card, and every signature is normalized to a
+# long side of 1000, so one that is at least this wide fills the card's width and
+# lands on screen at exactly the same scale as every other. A squarer hand is
+# limited by the card's height instead and renders smaller - Pasteur at 0.96 came
+# out at a third the size of Monet at 8.5 - which quietly made it much harder to
+# trace for reasons that had nothing to do with the handwriting. Excluding those
+# is what lets difficulty be a property of the signature again.
+#
+# Must stay >= the widest aspect the play card can take, which js/app.js caps at
+# the same number. The two have to agree or the guarantee breaks.
+MIN_ASPECT = 3.0
+MAX_ASPECT = 30.0     # beyond this it is a rule, not a signature
 RASTER_PX = 360       # resolution used to measure rendered ink
 HOLLOW_PX = 900       # higher res, so hairlines stay connected when flooding
 # Deliberately loose. Loopy-but-solid signatures reach 1.5-2.1 (Armstrong,
@@ -74,8 +95,10 @@ def convert(svg_text):
     if w <= 0 or h <= 0:
         raise Rejected("degenerate bounds")
 
-    aspect = max(w, h) / max(min(w, h), 1e-6)
-    if aspect > 30:
+    aspect = w / max(h, 1e-6)
+    if aspect < MIN_ASPECT:
+        raise Rejected("not wide enough (%.2f:1)" % aspect)
+    if aspect > MAX_ASPECT:
         raise Rejected("implausible aspect %.1f" % aspect)
 
     for s in shapes:
@@ -205,27 +228,24 @@ def years(person):
 # Curie's hairline punishes a millimetre. Judging on shape alone put fat, showy
 # signatures above fine, plain ones that are markedly harder to trace.
 WEIGHTS = {
-    "fineness":  0.26,   # how narrow the pen is, relative to the signature
-    "ink_ratio": 0.20,   # pen travel packed into the space
-    "aspect":    0.16,   # how long and thin it is - see below
-    "fragments": 0.14,   # small disconnected marks to re-site the hand for
-    "curl":      0.08,   # how tightly the line turns as it travels
-    "contours":  0.08,   # pen lifts and counters
-    "turning":   0.04,   # curliness
-    "corners":   0.04,   # abrupt direction changes
+    "fineness":  0.30,   # how narrow the pen is, relative to the signature
+    "ink_ratio": 0.24,   # pen travel packed into the space
+    "fragments": 0.16,   # small disconnected marks to re-site the hand for
+    "curl":      0.10,   # how tightly the line turns as it travels
+    "contours":  0.10,   # pen lifts and counters
+    "turning":   0.05,   # curliness
+    "corners":   0.05,   # abrupt direction changes
 }
 
-# Aspect is in here for a reason that is about the phone, not the handwriting.
-# Signatures are normalized to a long side of 1000, and the card fills the
-# screen's width, so an 8:1 signature is only 125 units tall where a 3:1 one is
-# 333 - its letterforms land on screen a third the size, in portrait especially.
-# Howard Hughes and John Lennon are both wide and both play hard for exactly
-# that reason, while nothing about their geometry says so.
+# Aspect ratio used to carry weight here, and no longer does.
 #
-# This is compensation for a presentation problem rather than a property of the
-# signature. The better fix is to give long signatures more room in portrait -
-# rotating the card, or letting the player pan along it - after which this
-# weight should come back down.
+# It was never a claim about the handwriting: it was paying for the fact that a
+# wide signature squeezed into a portrait card renders small. The game now
+# requires a landscape screen and only ships signatures at least MIN_ASPECT
+# wide, so every one of them fills the card's width and reaches the player at
+# the same scale. With the presentation problem gone there is nothing left for
+# the metric to compensate for, and a wide hand is no longer called hard for
+# being wide.
 
 
 def percentile_ranks(values):

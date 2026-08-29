@@ -12,6 +12,16 @@ Open `docs/index.html`. That's the whole instruction — no server, no build ste
 no dependencies. It works by double-click from the filesystem, and equally well
 served over HTTP.
 
+**It asks for a landscape touchscreen**, and both halves of that are load-bearing
+rather than preference. Landscape because every signature in the corpus is wide;
+turned upright, one has to shrink to a third of the size to fit the screen's
+short edge. Touch because the difficulty is calibrated against a fingertip
+covering the very line it is following — which is what the loupe exists for, and
+what a mouse pointer does not do. Turning the phone fixes the first, so portrait
+is a hard stop. Nothing fixes the second on a laptop, and a dead end is a worse
+answer than a warning, so that gate can be waved through (per load, not
+remembered).
+
 The game lives in `docs/` and nothing else does. GitHub Pages will only serve
 from the repo root or a folder called `docs/`, so this is the one layout that
 publishes the game — and only the game — with no workflow file and no build:
@@ -175,12 +185,24 @@ five honest attempts and ten cheats and reports the two numbers that matter —
 `SG.grade.tune({...})` from the console changes the constants live, so a
 parameter search does not mean editing files between runs.
 
-As it stands: **960 cheat attempts, none of them pass**, the best reaching 65%
-against a 72% bar. Clean, steady, doubled-back and edge-traced attempts clear
+As it stands: **960 cheat attempts, none of them pass**, the best reaching 64%
+against a 73% bar. Clean, steady, doubled-back and edge-traced attempts clear
 every level. A deliberately shaky attempt — wandering about two pen widths off
-the line — fails on about a fifth of them, which is a difficulty judgement rather
-than a correctness one; `pass_mark` is the single line to change if that feels
-wrong on a real phone.
+the line — fails on 14 of 96, which is a difficulty judgement rather than a
+correctness one; `pass_mark` is the single line to change if that feels wrong on
+a real phone.
+
+### The drawn line vs. the scored line
+
+The player's ink is drawn at exactly the width the grader inks it at, with one
+bounded exception: a short taper as the nib lands and leaves, plus a darker core
+down the middle. Both are display only — `paintStrokes` takes the pen dressing as
+an argument, `pad.js` passes it and `grade.js` does not. A velocity-tapered nib
+along the whole stroke stays off the table for the original reason: the line
+being scored would stop being the line on screen, and near-misses would look
+unfair. The end taper survives that test because it covers a nib and a half at
+each end and makes the drawn line *thinner* than the scored one, so the ink can
+never claim credit the score did not give.
 
 Two things that look like exploits and are not, both recorded so nobody re-adds
 them to the cheat list: tracing only a third of the *strokes* passes, because the
@@ -198,14 +220,13 @@ and combined.
 
 | weight | metric | what it catches |
 |---|---|---|
-| 0.26 | fineness | how narrow the nib is **relative to the signature's own size** |
-| 0.20 | ink ratio | sheer length of line |
-| 0.16 | aspect | how long and thin it is — see below |
-| 0.14 | fragments | small disconnected marks, each needing the hand re-sited |
-| 0.08 | curl | how tightly the line turns as it travels: fiddly vs sweeping |
-| 0.08 | contours | pen lifts and counters |
-| 0.04 | turning | overall curliness |
-| 0.04 | corners | abrupt direction changes |
+| 0.30 | fineness | how narrow the nib is **relative to the signature's own size** |
+| 0.24 | ink ratio | sheer length of line |
+| 0.16 | fragments | small disconnected marks, each needing the hand re-sited |
+| 0.10 | curl | how tightly the line turns as it travels: fiddly vs sweeping |
+| 0.10 | contours | pen lifts and counters |
+| 0.05 | turning | overall curliness |
+| 0.05 | corners | abrupt direction changes |
 
 Fineness dominates because it is the strongest single predictor: van Gogh's broad
 blunt hand forgives a wobble no matter how it loops, while Curie's hairline
@@ -217,32 +238,40 @@ elsewhere a hairline breaks into hundreds of "pieces" that are raster gaps rathe
 than pen lifts — Voltaire read as 211 at 340px and 18 at 1000px — which would
 have measured thinness a second time under a different name.
 
-### Aspect is compensation, not a property of the handwriting
+### Aspect ratio used to be in this table, and no longer is
 
-Signatures are normalized to a long side of 1000 and the card fills the screen's
-width, so an 8:1 signature is only 125 units tall where a 3:1 one is 333 — its
-letterforms land on screen a third the size, in portrait especially. Howard
-Hughes and John Lennon both play hard for exactly that reason while nothing about
-their geometry says so.
+It was never a claim about the handwriting. Signatures are normalized to a long
+side of 1000, so a wide one fills the card's width while a square one has to
+shrink to fit the card's height: Pasteur at 0.96:1 arrived on screen a third the
+size of Monet at 8.5:1. A finger's error is fixed in screen pixels while the
+score is measured in signature units, so the small ones were quietly much harder
+to trace, for a reason that had nothing to do with the pen. Weighting aspect was
+paying that bill in difficulty points.
 
-**This is a presentation problem being paid for in difficulty.** The better fix
-is to give long signatures more room in portrait — rotating the card, or letting
-the player pan along it — after which this weight should come back down. It is
-worth keeping that in mind before treating 0.16 as a fact about handwriting.
+It is now fixed where the problem actually was. The game requires a landscape
+screen, `MIN_ASPECT` in `tools/build_corpus.py` refuses anything squarer than
+3:1, and `CARD_ASPECT` in `docs/js/app.js` caps the card at the same 3:1 so that
+**every signature in the corpus is limited by the card's width and lands at one
+identical scale**. Those two constants have to agree; the card-sizing comment
+says so, and a card that overflows its row is the symptom if they drift.
+
+The cost is real and worth stating: van Gogh (2.58:1), Napoleon (2.18:1) and
+Gandhi (2.27:1) are not in the corpus any more. Recovering them means lowering
+`MIN_ASPECT` to roughly 2.1, which filters almost nothing and gives the whole
+problem back.
 
 ### Where measurement and play disagree
 
 `DIFFICULTY_NUDGE` in `tools/sources.py` adjusts the remainder. Lennon and Hughes
-each carry a small one: aspect now explains most of why they play hard, but in
-both cases the letters are so unpronounced that there is nothing to aim at, which
-no shape metric sees. It is kept deliberately short — it exists for signatures
-where playing the thing disagrees with measuring it, not as a place to hand-rank
-the corpus. If it starts filling up, the metrics are wrong and should be fixed.
+each carry a small one: in both cases the letters are so unpronounced that there
+is nothing to aim at, which no shape metric sees. It is kept deliberately short —
+it exists for signatures where playing the thing disagrees with measuring it, not
+as a place to hand-rank the corpus. If it starts filling up, the metrics are
+wrong and should be fixed.
 
 Cervantes was dropped from the corpus rather than nudged. His artwork is a dense
-document rubric — several lines of compact writing plus a flourish — and shrunk
-to a phone card in portrait the letters are too small to trace at all. That is
-not a difficulty problem; it is not a signature the way the others are.
+document rubric — several lines of compact writing plus a flourish — not a
+signature the way the others are.
 
 Tracks are then ordered by that score, so each collection runs easiest to
 hardest, and every track is trimmed to the same even length.
@@ -257,11 +286,17 @@ python tools/contact_sheet.py        # writes tools/sheet_<theme>.png for eyebal
 ```
 
 The pipeline asks Wikidata for deceased public figures who have an SVG signature
-(`P109`) and at least 40 Wikipedia sitelinks, sorts them into six themes by
+(`P109`) and at least 25 Wikipedia sitelinks, sorts them into six themes by
 occupation, downloads the artwork from Commons, flattens it to polylines, scores
 each signature's complexity, and keeps the most famous per theme ordered by
 difficulty. Fame picks the names; difficulty sets the ramp. Each level also
 carries a link to the subject's English Wikipedia article.
+
+That fame floor is low, and set by one track. There are twenty politicians with a
+signature on file for every mountaineer, so when the wide-only rule cut Explorers
+& Aviators below a full sixteen, the fix was to source deeper rather than to
+shorten every track to match. Only the tracks that need the tail ever reach it —
+candidates are taken in descending fame order and the others fill up long before.
 
 Everything network-touching is cached under `tools/.cache`, so re-runs are fast
 and offline. Difficulty, vectorization and pen widths are all precomputed here —

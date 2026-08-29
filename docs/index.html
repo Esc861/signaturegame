@@ -48,14 +48,17 @@
       <button class="back" id="play-back" aria-label="Back to collection">&larr;</button>
       <div class="bar-title">
         <h2 id="play-name"></h2>
-        <p><span id="play-years"></span> &middot; needs <b id="play-target"></b></p>
+        <!-- The coaching line lives up here rather than under the card. In
+             landscape the vertical pixels are the scarce ones, and every row
+             below the card comes straight off the size of the signature. -->
+        <p><span id="play-years"></span> &middot; needs <b id="play-target"></b>
+           &middot; <span id="play-hint"></span></p>
       </div>
       <div class="pips" id="play-pips" aria-hidden="true"></div>
     </header>
 
     <div class="card-wrap">
       <canvas id="pad"></canvas>
-      <p class="hint" id="play-hint">Trace the grey signature with your finger.</p>
     </div>
     <!-- Floats over the page rather than living inside the pad, so it always
          has room to sit above the fingertip. -->
@@ -69,23 +72,30 @@
 
     <!-- result, over the pad so the attempt stays put behind it -->
     <div class="sheet" id="result" hidden>
+      <!-- Two columns side by side on a landscape screen, where height is the
+           scarce dimension and a stacked sheet would have to be scrolled to
+           reach its own buttons. -->
       <div class="sheet-inner">
-        <p class="verdict" id="res-verdict"></p>
-        <p class="bigscore"><span id="res-score">0</span><i>%</i></p>
-        <p class="res-need" id="res-need"></p>
-        <canvas id="res-map"></canvas>
-        <ul class="breakdown">
-          <li><b id="res-flu">0%</b><span>steadiness</span></li>
-          <li><b id="res-prec">0%</b><span>on the line</span></li>
-          <li><b id="res-cov">0%</b><span>covered</span></li>
-        </ul>
-        <p class="legend"><i class="sw-good"></i> close
-          <i class="sw-mid"></i> drifting <i class="sw-bad"></i> off the line</p>
-        <p class="examiner">Judged the way a document examiner judges a
-          signature: line quality first. A hand that wavers gives itself away,
-          while a few units off the mark means nothing.</p>
-        <p class="readmore"><a id="res-wiki" href="#" target="_blank"
-           rel="noopener noreferrer"></a></p>
+        <div class="res-verdict-col">
+          <p class="verdict" id="res-verdict"></p>
+          <p class="bigscore"><span id="res-score">0</span><i>%</i></p>
+          <p class="res-need" id="res-need"></p>
+          <ul class="breakdown">
+            <li><b id="res-flu">0%</b><span>steadiness</span></li>
+            <li><b id="res-prec">0%</b><span>on the line</span></li>
+            <li><b id="res-cov">0%</b><span>covered</span></li>
+          </ul>
+        </div>
+        <div class="res-map-col">
+          <canvas id="res-map"></canvas>
+          <p class="legend"><i class="sw-good"></i> close
+            <i class="sw-mid"></i> drifting <i class="sw-bad"></i> off the line</p>
+          <p class="examiner">Judged the way a document examiner judges a
+            signature: line quality first. A hand that wavers gives itself away,
+            while a few units off the mark means nothing.</p>
+          <p class="readmore"><a id="res-wiki" href="#" target="_blank"
+             rel="noopener noreferrer"></a></p>
+        </div>
         <div class="sheet-tools">
           <button id="btn-again" class="tool">Try again</button>
           <button id="btn-next" class="tool primary">Next</button>
@@ -93,6 +103,19 @@
       </div>
     </div>
   </section>
+
+  <!-- ---------------------------------------------------------- gate -->
+  <!-- Not a screen in the router: it can interrupt any of them, the moment the
+       phone is turned. -->
+  <div id="gate" hidden>
+    <div class="gate-inner">
+      <p class="gate-mark">Historic<br>Ink</p>
+      <i class="gate-phone" id="gate-phone" aria-hidden="true"></i>
+      <h2 id="gate-title"></h2>
+      <p id="gate-body"></p>
+      <button class="tool" id="gate-anyway" hidden>Carry on regardless</button>
+    </div>
+  </div>
 
   <!-- --------------------------------------------------------- about -->
   <section class="screen" id="screen-about">
@@ -116,6 +139,12 @@
          measured from the signature itself &mdash; how much pen travel is
          packed into the space, how much it turns, how tangled it is, and how
          fine the pen was. A broad nib forgives a wobble; a hairline does not.</p>
+      <p>It is played sideways, and every signature here is a wide one. That
+         pair of decisions goes together: normalised to the same length, a wide
+         hand fills the card and a square one has to shrink to fit its height,
+         which made some signatures harder than others for no reason to do with
+         the handwriting. Wide-only on a landscape card means every hand reaches
+         you at the same size, and difficulty means what it says.</p>
       <p class="quiet">Progress is stored on this device only.</p>
       <button class="tool danger" id="btn-reset">Erase my progress</button>
       <h3>Sources</h3>

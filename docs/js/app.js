@@ -112,19 +112,41 @@
 
   /* -------------------------------------------------------------- play */
 
-  /* Signatures are not all letterbox-shaped: Pasteur's is nearly square, van
-     Gogh's is a long ribbon. A fixed-height card would shrink the square ones
-     to a stamp, so the card takes its height from the signature. */
-  function cardHeight(level, width, minH, maxH) {
-    var ideal = width * (level.h / level.w);
-    return Math.round(Math.max(minH, Math.min(ideal, maxH)));
-  }
+  /* The card's shape, and why every signature ends up the same size on screen.
+   *
+   * Signatures are normalized to a long side of 1000, so a level rendered at
+   * card width W always lands at scale W/1000 - as long as the card is short
+   * enough that the fit is limited by its width rather than its height. That
+   * holds for every signature at least CARD_ASPECT wide, and the corpus is
+   * built to contain nothing squarer: tools/build_corpus.py rejects anything
+   * under the same number. The two constants have to agree.
+   *
+   * Getting this wrong is not cosmetic. A signature that ends up height-limited
+   * renders smaller, and since a finger's error is fixed in screen pixels while
+   * the score is measured in signature units, it silently becomes harder to
+   * trace for reasons that have nothing to do with the handwriting. The card is
+   * therefore one constant width for every level, and only its height varies -
+   * hugging the signature, so a long ribbon gets a ribbon-shaped card. */
+  var CARD_ASPECT = 3.0;
 
   function sizePad(level) {
     var c = $('pad');
-    var w = c.getBoundingClientRect().width || c.parentNode.clientWidth;
-    var room = Math.round(window.innerHeight * 0.56);
-    c.style.height = cardHeight(level, w, 190, Math.max(210, room)) + 'px';
+    var wrap = c.parentNode;
+    var m = SG.Pad.MARGIN_FRAC;                  // per side, of the card's width
+    var availW = wrap.clientWidth || window.innerWidth;
+    var availH = wrap.clientHeight || Math.round(window.innerHeight * 0.6);
+
+    // The tallest card any level can ask for, per unit of width. Sizing off
+    // this rather than off *this* level is what keeps the width constant.
+    var tallest = 2 * m + (1 - 2 * m) / CARD_ASPECT;
+    var w = Math.min(availW, availH / tallest);
+    // The min() only bites if a level squarer than CARD_ASPECT ever slips into
+    // the corpus, in which case a card that overflows its row is the visible
+    // symptom of the two constants having drifted apart.
+    var h = Math.min(availH, w * (2 * m + (1 - 2 * m) * (level.h / level.w)));
+
+    c.style.width = Math.round(w) + 'px';
+    c.style.height = Math.round(h) + 'px';
   }
 
   function renderPlay(theme, index) {
@@ -276,6 +298,56 @@
     });
   }
 
+  /* -------------------------------------------------------------- gate */
+
+  /* The game asks for a landscape touchscreen, and both halves of that are
+     load-bearing rather than preference.
+
+     Landscape, because the whole corpus is wide: turned upright, a signature
+     has to shrink to a third of the size to fit the screen's short edge, and
+     tracing it stops being a test of a steady hand and becomes a test of
+     eyesight. Touch, because the difficulty is calibrated against a fingertip
+     covering the very line it is trying to follow - which is what the loupe
+     exists for, and what a mouse pointer simply does not do.
+
+     Turning the phone fixes the first, so it is a hard stop. Nothing fixes the
+     second on a laptop, and a dead end is a worse answer than a warning, so
+     that one can be waved through - per load, not remembered. */
+  var waved = false;
+
+  function isTouch() {
+    return (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window
+      || (window.matchMedia && matchMedia('(any-pointer: coarse)').matches);
+  }
+
+  function checkGate() {
+    var portrait = window.innerHeight >= window.innerWidth;
+    var why = (!isTouch() && !waved) ? 'touch' : portrait ? 'turn' : null;
+    var g = $('gate');
+
+    document.body.classList.toggle('gated', !!why);
+    g.hidden = !why;
+    $('gate-phone').hidden = why !== 'turn';
+    $('gate-anyway').hidden = why !== 'touch';
+    if (why === 'turn') {
+      $('gate-title').textContent = 'Turn it sideways';
+      $('gate-body').textContent = isTouch()
+        ? 'These signatures are written wide. Held upright there is nowhere '
+          + 'near enough room for one, so the game is played in landscape.'
+        : 'These signatures are written wide. Make the window wider than it '
+          + 'is tall and the card will have room for one.';
+    } else if (why === 'touch') {
+      $('gate-title').textContent = 'Made for a fingertip';
+      $('gate-body').textContent = 'Historic Ink is a tracing game for a '
+        + 'touchscreen — the difficulty is set against a finger covering the '
+        + 'line it is following. Open it on a phone or tablet for the game as '
+        + 'it is meant to play.';
+    }
+    // The card's size is measured off the layout, and the layout has usually
+    // just changed underneath it.
+    if (!why && pad && pad.level) { sizePad(pad.level); pad.resize(); }
+  }
+
   /* ------------------------------------------------------------ router */
 
   var SCREENS = ['home', 'track', 'play', 'about'];
@@ -319,6 +391,14 @@
 
   /* -------------------------------------------------------------- wire */
 
+  function onResize() {
+    checkGate();
+    if (pad && pad.level) { sizePad(pad.level); pad.resize(); }
+    if (current.result && !$('result').hidden) {
+      drawResultMap(pad.level, pad.strokes, current.result);
+    }
+  }
+
   function init() {
     document.querySelectorAll('[data-go]').forEach(function (b) {
       b.addEventListener('click', function () { go(b.getAttribute('data-go')); });
@@ -357,14 +437,21 @@
       navigator.serviceWorker.register('sw.js').catch(function () { /* fine */ });
     }
 
-    window.addEventListener('hashchange', route);
-    window.addEventListener('resize', function () {
-      if (pad && pad.level) { sizePad(pad.level); pad.resize(); }
-      if (current.result && !$('result').hidden) {
-        drawResultMap(pad.level, pad.strokes, current.result);
-      }
+    $('gate-anyway').addEventListener('click', function () {
+      waved = true;
+      checkGate();
     });
 
+    window.addEventListener('hashchange', route);
+    window.addEventListener('resize', onResize);
+    // Safari fires orientationchange before the viewport has settled, so the
+    // resize that follows is the one worth measuring; this is only here for the
+    // browsers that do not send one.
+    window.addEventListener('orientationchange', function () {
+      setTimeout(onResize, 120);
+    });
+
+    checkGate();
     route();
   }
 

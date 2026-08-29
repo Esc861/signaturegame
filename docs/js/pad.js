@@ -3,21 +3,29 @@
  * Strokes are recorded in signature space, never in screen pixels, so a score
  * means the same thing on a phone and on a desktop.
  *
- * The player's line is drawn at exactly the width the grader inks it at. That
- * is deliberate - a prettier velocity-tapered nib would mean the line being
- * scored is not the line on screen, and near-misses would look unfair.
+ * The player's line is drawn at the width the grader inks it at, apart from a
+ * short taper as the nib lands and leaves. A velocity-tapered nib along the
+ * whole stroke is still off the table: the line being scored would stop being
+ * the line on screen and near-misses would look unfair. The end taper is
+ * bounded, and thinner than the scored line rather than wider, so the ink can
+ * never claim credit the score did not give.
  */
 (function (SG) {
   'use strict';
 
   var geom = SG.geom, ink = SG.ink;
 
-  // Breathing room around the signature, as a fraction of the card's short
-  // edge. Kept tight on purpose: every pixel the signature gains is finer
-  // effective touch resolution, since a finger's error is fixed in screen terms
-  // while the score is measured in signature units. Not zero, because strokes
-  // that start hard against the edge are awkward to begin.
-  var MARGIN_FRAC = 0.03;
+  // Breathing room around the signature, as a fraction of the card's *width*.
+  // Kept tight on purpose: every pixel the signature gains is finer effective
+  // touch resolution, since a finger's error is fixed in screen terms while the
+  // score is measured in signature units. Not zero, because strokes that start
+  // hard against the edge are awkward to begin.
+  //
+  // Width, not the short edge, because it has to be the same number of pixels
+  // for every level. app.js sizes the card so that each signature is limited by
+  // its width and so lands at one identical scale; a margin measured off the
+  // card's height would vary with the signature's shape and undo that.
+  var MARGIN_FRAC = 0.012;
   var MIN_STEP = 1.2;       // px between recorded points, to drop jitter
 
   // The loupe: a magnified window on whatever is under the fingertip, shown
@@ -70,6 +78,7 @@
     this._showLoupe = false;
     this._mark = null;      // last position/time used for a speed sample
     this._ticker = 0;
+    this._pen = null;       // nib dressing, read off CSS at paint time
 
     this._bind();
     this.resize();
@@ -248,8 +257,7 @@
     this._css = { w: w, h: h };
 
     if (this.level) {
-      this._fit = geom.fit(this.level.w, this.level.h, w, h,
-                           Math.min(w, h) * MARGIN_FRAC);
+      this._fit = geom.fit(this.level.w, this.level.h, w, h, w * MARGIN_FRAC);
     }
     this.draw();
   };
@@ -275,6 +283,8 @@
     var inkc = style.getPropertyValue('--ink').trim() || '#2b2118';
     var card = style.getPropertyValue('--card').trim() || '#fffdf7';
     var rule = style.getPropertyValue('--rule').trim() || '#cbbfa8';
+    this._pen = { taper: true,
+                  core: style.getPropertyValue('--ink-core').trim() || '#150d06' };
 
     this._scene(ctx, guide, inkc);
     this._paintLoupe(guide, inkc, card, rule);
@@ -290,7 +300,8 @@
       ink.paintSignature(ctx, this.level, this._fit, guide);
     }
     if (inkAlpha != null) ctx.globalAlpha = inkAlpha;
-    ink.paintStrokes(ctx, this.strokes, this.level.pen, this._fit, inkc);
+    ink.paintStrokes(ctx, this.strokes, this.level.pen, this._fit, inkc,
+                     this._pen);
     ctx.globalAlpha = 1;
   };
 

@@ -110,7 +110,15 @@ SELECT ?p ?pLabel ?sig ?sitelinks ?dob ?dod ?occ ?article WHERE {
 
 # Sitelink bands, sized so no single query is heavy enough to hit the WDQS
 # gateway timeout. One unbounded query reliably 504s.
-_BANDS = [(40, 55), (55, 75), (75, 100), (100, 140), (140, 220), (220, 100000)]
+#
+# The floor sits at 25 rather than somewhere more selective because of the
+# explorers: it is much the smallest pool - there are twenty politicians with a
+# signature on file for every mountaineer - and requiring every signature to be
+# wide cut it below a full track. The tail is only ever reached by the tracks
+# that need it, since candidates are taken in descending fame order and the
+# others fill up long before.
+_BANDS = [(25, 40), (40, 55), (55, 75), (75, 100), (100, 140), (140, 220),
+          (220, 100000)]
 
 
 def _year(iso):
@@ -442,10 +450,12 @@ PRIORITY = {
 # and a connected flow are easy; thin, fragmented and tightly curved are hard -
 # but they are geometry, and some difficulty is not geometric.
 #
-# Lennon and Hughes are both wide, and the aspect weight now covers most of why
-# they play hard. This is the remainder: in both cases the letters are so
+# Lennon and Hughes are here because in both cases the letters are so
 # unpronounced that there is nothing to aim at, which no shape metric sees.
-# Middling-to-hard, not hardest.
+# Middling-to-hard, not hardest. These used to be topped up by a weight on how
+# wide a signature was; that weight is gone, since the landscape card now shows
+# every signature at the same size, and what is left is the part that was really
+# about the handwriting.
 #
 # Kept deliberately short. It exists for signatures where playing the thing
 # disagrees with measuring it, not as a place to hand-rank the corpus - if it
@@ -471,11 +481,15 @@ EXCLUDE_NAMES = {
     "Adolf Hitler", "Benito Mussolini", "Heinrich Himmler", "Hermann Göring",
     "Reinhard Heydrich", "Martin Bormann", "Joseph Goebbels", "Rudolf Hess",
     "Adolf Eichmann", "Josef Mengele",
+    # Reached the corpus once the fame floor came down, and scored into Stage &
+    # Screen off his film-producer credits, of all things. Same call as the
+    # group above.
+    "Kim Jong-il",
     "Pelé", "Diego Maradona", "Kobe Bryant",
 
     # Not a signature the way the rest are: a dense document rubric, several
-    # lines of compact writing plus a flourish. Shrunk to a phone card in
-    # portrait the letters are too small to trace at all.
+    # lines of compact writing plus a flourish. (It is also nowhere near wide
+    # enough for the card now, so this line is belt and braces.)
     "Miguel de Cervantes",
 }
 
