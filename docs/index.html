@@ -33,7 +33,7 @@
   <!-- --------------------------------------------------------- track -->
   <section class="screen" id="screen-track">
     <header class="bar">
-      <button class="back" data-go="#/" aria-label="Back to collections">&larr;</button>
+      <button class="back" data-go="#/" aria-label="Back to collections"></button>
       <div class="bar-title">
         <h2 id="track-name"></h2>
         <p id="track-blurb"></p>
@@ -44,17 +44,27 @@
 
   <!-- ---------------------------------------------------------- play -->
   <section class="screen screen-play" id="screen-play">
+    <!-- One strip of chrome rather than two, with the tools folded in beside
+         the name. Landscape is short as well as wide, and the card is sized
+         off whatever height is left over - so a row of chrome costs the
+         signature getting on for three times its own height in width. Two
+         rows ate a quarter of the drawing surface on a phone. -->
     <header class="bar bar-play">
-      <button class="back" id="play-back" aria-label="Back to collection">&larr;</button>
+      <button class="back" id="play-back" aria-label="Back to collection"></button>
       <div class="bar-title">
-        <h2 id="play-name"></h2>
-        <!-- The coaching line lives up here rather than under the card. In
-             landscape the vertical pixels are the scarce ones, and every row
-             below the card comes straight off the size of the signature. -->
+        <!-- The name links out to Wikipedia here, not only on the result
+             sheet: wondering who you are tracing is a thought you have while
+             looking at the handwriting, not after you have beaten it. -->
+        <h2><a id="play-name" target="_blank" rel="noopener noreferrer"></a></h2>
         <p><span id="play-years"></span> &middot; needs <b id="play-target"></b>
            &middot; <span id="play-hint"></span></p>
       </div>
       <div class="pips" id="play-pips" aria-hidden="true"></div>
+      <nav class="tools">
+        <button id="btn-undo" class="tool">Undo</button>
+        <button id="btn-clear" class="tool">Clear</button>
+        <button id="btn-done" class="tool primary">Done</button>
+      </nav>
     </header>
 
     <div class="card-wrap">
@@ -63,12 +73,6 @@
     <!-- Floats over the page rather than living inside the pad, so it always
          has room to sit above the fingertip. -->
     <canvas id="loupe" hidden aria-hidden="true"></canvas>
-
-    <nav class="tools">
-      <button id="btn-undo" class="tool">Undo</button>
-      <button id="btn-clear" class="tool">Clear</button>
-      <button id="btn-done" class="tool primary">Done</button>
-    </nav>
 
     <!-- result, over the pad so the attempt stays put behind it -->
     <div class="sheet" id="result" hidden>
@@ -105,22 +109,29 @@
   </section>
 
   <!-- ---------------------------------------------------------- gate -->
-  <!-- Not a screen in the router: it can interrupt any of them, the moment the
-       phone is turned. -->
+  <!-- Not a screen in the router: it interrupts the play screen the moment the
+       phone is turned, and only the play screen. The lists read perfectly well
+       upright, and a wall is a poor first thing to show somebody who has not
+       seen the game yet. -->
   <div id="gate" hidden>
     <div class="gate-inner">
       <p class="gate-mark">Historic<br>Ink</p>
       <i class="gate-phone" id="gate-phone" aria-hidden="true"></i>
       <h2 id="gate-title"></h2>
       <p id="gate-body"></p>
-      <button class="tool" id="gate-anyway" hidden>Carry on regardless</button>
+      <!-- Always a way out. Someone who cannot turn their screen would
+           otherwise be stranded on this with no route back to the list. -->
+      <div class="gate-tools">
+        <button class="tool" id="gate-back">Back to the collection</button>
+        <button class="tool primary" id="gate-anyway" hidden>Carry on regardless</button>
+      </div>
     </div>
   </div>
 
   <!-- --------------------------------------------------------- about -->
   <section class="screen" id="screen-about">
     <header class="bar">
-      <button class="back" data-go="#/" aria-label="Back to collections">&larr;</button>
+      <button class="back" data-go="#/" aria-label="Back to collections"></button>
       <div class="bar-title"><h2>About &amp; credits</h2></div>
     </header>
     <div class="prose">

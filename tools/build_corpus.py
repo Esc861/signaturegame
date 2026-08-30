@@ -290,15 +290,21 @@ def pass_mark(difficulty):
     Calibrated against the scorer rather than guessed, by running every level in
     dev/grade-test.html against a realistic traced attempt and against the ways
     people try to cheat a tracing game. Those two populations separate cleanly:
-    a decent attempt scores no lower than 70, and the best scribble anywhere
-    reaches 65. The band below sits between them, so no scribble clears any
-    level and no honest attempt fails one.
+    the best scribble anywhere reaches 65, while a careful trace scores in the
+    high seventies and up. The band has to sit between them, and the room
+    between them is where taste comes in.
+
+    It used to sit at 66-76, close against the cheats, which turned out to play
+    too easy: a first attempt cleared most levels and the game had nothing to
+    ask for. Four points higher costs the cheats nothing - the floor is still
+    five clear of the best of them, and further away than it was - and asks a
+    careful hand to actually be careful.
 
     Still eased against difficulty, so a dense, tangled hand is not a wall - but
     over a much narrower range than the spread of the scores themselves, which
     turns out not to track difficulty closely.
     """
-    return int(round(max(66.0, min(76.0, 76.0 - 0.12 * difficulty))))
+    return int(round(max(70.0, min(80.0, 80.0 - 0.12 * difficulty))))
 
 
 # --------------------------------------------------------------------------

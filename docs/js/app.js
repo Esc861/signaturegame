@@ -155,7 +155,17 @@
     current.index = index;
     current.result = null;
 
-    $('play-name').textContent = lv.name;
+    // The name links out from the header, before the level is cleared. Wanting
+    // to know whose hand this is happens while you are looking at it.
+    var who = $('play-name');
+    who.textContent = lv.name;
+    if (lv.wiki) {
+      who.href = lv.wiki;
+      who.title = 'Read about ' + lv.name + ' on Wikipedia';
+    } else {
+      who.removeAttribute('href');
+      who.removeAttribute('title');
+    }
     $('play-years').textContent = lv.years || '—';
     $('play-target').textContent = lv['pass'] + '%';
     var pips = $('play-pips');
@@ -312,7 +322,13 @@
 
      Turning the phone fixes the first, so it is a hard stop. Nothing fixes the
      second on a laptop, and a dead end is a worse answer than a warning, so
-     that one can be waved through - per load, not remembered. */
+     that one can be waved through - per load, not remembered.
+
+     Neither applies until there is a signature on screen. The collection lists
+     read perfectly well upright on any device, and demanding a posture from
+     somebody before they have seen a single thing the game does is the worst
+     possible first impression. The rule is about tracing, so it starts when
+     the tracing does. */
   var waved = false;
 
   function isTouch() {
@@ -320,9 +336,15 @@
       || (window.matchMedia && matchMedia('(any-pointer: coarse)').matches);
   }
 
+  function playing() {
+    return /^#\/p\//.test(location.hash || '');
+  }
+
   function checkGate() {
     var portrait = window.innerHeight >= window.innerWidth;
-    var why = (!isTouch() && !waved) ? 'touch' : portrait ? 'turn' : null;
+    var why = !playing() ? null
+            : (!isTouch() && !waved) ? 'touch'
+            : portrait ? 'turn' : null;
     var g = $('gate');
 
     document.body.classList.toggle('gated', !!why);
@@ -363,7 +385,15 @@
     else location.hash = hash;
   }
 
+  // The gate depends on which screen is showing, not only on the shape of the
+  // window, so every route change has to reconsider it - and afterwards, once
+  // the screen it decides about is actually up.
   function route() {
+    dispatch();
+    checkGate();
+  }
+
+  function dispatch() {
     var parts = (location.hash || '#/').replace(/^#\/?/, '').split('/');
 
     if (parts[0] === 't' && parts[1]) {
@@ -442,6 +472,10 @@
       checkGate();
     });
 
+    $('gate-back').addEventListener('click', function () {
+      go(current.theme ? '#/t/' + current.theme.id : '#/');
+    });
+
     window.addEventListener('hashchange', route);
     window.addEventListener('resize', onResize);
     // Safari fires orientationchange before the viewport has settled, so the
@@ -451,7 +485,6 @@
       setTimeout(onResize, 120);
     });
 
-    checkGate();
     route();
   }
 

@@ -22,6 +22,22 @@ is a hard stop. Nothing fixes the second on a laptop, and a dead end is a worse
 answer than a warning, so that gate can be waved through (per load, not
 remembered).
 
+Neither gate applies until a signature is actually open. The collection lists
+read perfectly well upright on anything, and asking somebody to adopt a posture
+before they have seen a single thing the game does is the worst possible first
+impression. The rule is about tracing, so it begins when the tracing does — and
+the gate always carries a way back to the list, so a screen that cannot be
+turned is never a trap.
+
+The play screen carries **one strip of chrome**, name and tools together, rather
+than a header above the card and a tool row below it. Landscape is short as well
+as wide, and the card is sized against whatever height is left over: with the
+long side normalized to 1000 and the card capped at 3:1, a pixel of chrome costs
+the signature nearly three pixels of width. Two rows were taking about a quarter
+of the drawing surface on a phone. The name in that strip links out to
+Wikipedia from the moment the level opens, rather than only from the result
+sheet — wondering whose hand this is happens while you are looking at it.
+
 The game lives in `docs/` and nothing else does. GitHub Pages will only serve
 from the repo root or a folder called `docs/`, so this is the one layout that
 publishes the game — and only the game — with no workflow file and no build:
@@ -176,7 +192,13 @@ stores a traced *outline* of the ink rather than the original pen path.
 `pass_mark` in `tools/build_corpus.py` is calibrated against the scorer rather
 than guessed, by running every level against a realistic traced attempt and
 against the ways people try to cheat a tracing game. The two populations
-separate cleanly, and the thresholds sit in the band between them, 66–76.
+separate cleanly, and the thresholds sit in the band between them, 70–80.
+
+They sat at 66–76 first, tight against the cheats, and that played too easy — a
+first attempt cleared most levels and the game had nothing to ask for. Four
+points higher costs the cheats nothing (the floor moved *away* from the best of
+them, from two points clear to six) and asks a careful hand to actually be
+careful.
 
 **If you change the scoring constants, recalibrate.** Serve the directory, open
 `dev/grade-test.html`, and press **Run full sweep**: it puts every level through
@@ -186,11 +208,17 @@ five honest attempts and ten cheats and reports the two numbers that matter —
 parameter search does not mean editing files between runs.
 
 As it stands: **960 cheat attempts, none of them pass**, the best reaching 64%
-against a 73% bar. Clean, steady, doubled-back and edge-traced attempts clear
-every level. A deliberately shaky attempt — wandering about two pen widths off
-the line — fails on 14 of 96, which is a difficulty judgement rather than a
-correctness one; `pass_mark` is the single line to change if that feels wrong on
-a real phone.
+against a 70% floor. A clean trace and a doubled-back one clear every level.
+
+Above that floor the picture is a judgement rather than a correctness result,
+and worth stating exactly, because raising the bar is what moved it. A steady
+attempt now clears 95 of 96 — John Lennon by one point the wrong way, on a level
+whose difficulty is hand-nudged upward already. A deliberately shaky attempt,
+wandering about two pen widths off the line, fails on 19. And tracing the
+*outline* of the ink rather than its middle — an honest strategy, and a worse
+one, since the outline is longer than the line it encloses — now fails on
+Einstein, where it used to land exactly on the old bar. `pass_mark` is the
+single line to change if any of that feels wrong on a real phone.
 
 ### The drawn line vs. the scored line
 
