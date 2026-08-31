@@ -1,9 +1,10 @@
 # Historic Ink
 
 A touch-first web game: trace the signatures of history over a faded guide, get
-scored on accuracy, and unlock progressively harder hands across six collections.
+scored on accuracy, and unlock progressively harder hands across eight
+collections.
 
-96 signatures — six tracks of sixteen — sourced from Wikidata and Wikimedia
+288 signatures — eight tracks of thirty-six — sourced from Wikidata and Wikimedia
 Commons.
 
 ## Playing it
@@ -207,18 +208,24 @@ five honest attempts and ten cheats and reports the two numbers that matter —
 `SG.grade.tune({...})` from the console changes the constants live, so a
 parameter search does not mean editing files between runs.
 
-As it stands: **960 cheat attempts, none of them pass**, the best reaching 64%
-against a 70% floor. A clean trace and a doubled-back one clear every level.
+As it stands, across the full 288: **2880 cheat attempts, none of them pass**,
+the best reaching 64% against a 70% floor. Tripling the corpus did not move that
+number at all — the worst cheat in the game is still Rembrandt traced as a
+six-lobed zigzag, exactly as it was at 96 levels.
 
-Above that floor the picture is a judgement rather than a correctness result,
-and worth stating exactly, because raising the bar is what moved it. A steady
-attempt now clears 95 of 96 — John Lennon by one point the wrong way, on a level
-whose difficulty is hand-nudged upward already. A deliberately shaky attempt,
-wandering about two pen widths off the line, fails on 19. And tracing the
-*outline* of the ink rather than its middle — an honest strategy, and a worse
-one, since the outline is longer than the line it encloses — now fails on
-Einstein, where it used to land exactly on the old bar. `pass_mark` is the
-single line to change if any of that feels wrong on a real phone.
+Above the floor the picture is a judgement rather than a correctness result, and
+worth stating exactly. 65 of the 288 honest attempts fail, which is 23% against
+22% at the old size, so the calibration held as the corpus grew. 57 of those 65
+are the deliberately shaky attempt, wandering about two pen widths off the line,
+which is the population the bar was raised to catch. The rest: a steady attempt
+fails on three levels, a doubled-back one on three, edge-tracing on Einstein,
+and a *clean* trace on exactly one — José Ortega y Gasset, two points short of
+his own pass mark. One level in 288 where a perfect synthetic trace cannot clear
+the bar is the honest cost of a difficulty-derived threshold; `pass_mark` is the
+single line to change if it feels wrong on a real phone.
+
+The sweep is also what catches a broken *signature*, as opposed to a broken
+score. See the note on Max Weber under Curation.
 
 ### The drawn line vs. the scored line
 
@@ -314,17 +321,42 @@ python tools/contact_sheet.py        # writes tools/sheet_<theme>.png for eyebal
 ```
 
 The pipeline asks Wikidata for deceased public figures who have an SVG signature
-(`P109`) and at least 25 Wikipedia sitelinks, sorts them into six themes by
+(`P109`) and at least 5 Wikipedia sitelinks, sorts them into eight themes by
 occupation, downloads the artwork from Commons, flattens it to polylines, scores
 each signature's complexity, and keeps the most famous per theme ordered by
 difficulty. Fame picks the names; difficulty sets the ramp. Each level also
 carries a link to the subject's English Wikipedia article.
 
-That fame floor is low, and set by one track. There are twenty politicians with a
-signature on file for every mountaineer, so when the wide-only rule cut Explorers
-& Aviators below a full sixteen, the fix was to source deeper rather than to
-shorten every track to match. Only the tracks that need the tail ever reach it —
-candidates are taken in descending fame order and the others fill up long before.
+### Why eight tracks of thirty-six, and not six of forty-eight
+
+Because of the explorers, and the number is measured rather than chosen. Counted
+end to end — every fame level, no floor at all — Wikidata holds about 108
+deceased people with an SVG signature who classify as an explorer, aviator,
+astronaut or mountaineer, and 45% of those survive the wide-only rule. That is
+roughly 47 usable signatures in the world for that track. Forty-eight is not
+reachable at any fame floor, and there is no occupation to add: ranking every
+unindexed occupation in the pool by headcount turns up nothing frontier-adjacent
+above single figures.
+
+So the corpus grew sideways as well as down. Two new tracks were split off the
+two largest pools — Philosophers & Historians out of what is now Writers &
+Poets, Monarchs & Nobility out of what is now Statesmen & Revolutionaries — and
+every one of the eight has at least 100 candidates against a 36 requirement.
+
+The fame floor of 5 is set by the same track and by nothing else. Only the
+tracks that need the tail ever reach it: candidates are taken in descending fame
+order, and the writers and the statesmen stop around 130 sitelinks while the
+explorers are still going.
+
+### Names come from Wikipedia, not from the label
+
+The label service answers in the first of `en,de,fr,es,it` that has a label, and
+for a few people Wikidata carries no English label at all — which is how the
+game came to show "Rosa Luxemburgo". Where an English label does exist it is
+sometimes still not the name a reader expects: "Benedictus de Spinoza",
+"Elizabeth I of England". So the display name is the title of the English
+Wikipedia article, minus any parenthetical disambiguator, which every person in
+the pool has. It fixed 21 names out of 288 and made none of them worse.
 
 Everything network-touching is cached under `tools/.cache`, so re-runs are fast
 and offline. Difficulty, vectorization and pen widths are all precomputed here —
@@ -338,12 +370,45 @@ front of their track's queue regardless of ranking — John Hancock's is the mos
 recognisable signature in the English-speaking world and his 47 sitelinks had him
 nowhere near the cut.
 
+That list is the most interesting thing in the curation, because some signatures
+are famous *as signatures*, quite separately from the person: the document they
+sit on is the artefact, or the hand itself became a trademark, or so few survive
+that collectors price them by the letter. Sitelinks cannot see any of it. Button
+Gwinnett is the extreme case — 19 sitelinks, dead in a duel a year after signing
+the Declaration, and roughly fifty surviving examples of his hand, which makes
+his the most valuable autograph in America by a distance nobody else is near.
+The same reasoning brings in Josiah Bartlett and Richard Henry Lee, Daniel Boone
+and Davy Crockett, Lewis and Clark, Wild Bill Hickok, Annie Oakley, Buffalo Bill,
+Sitting Bull (who sold his autograph on the Wild West circuit), both Wright
+brothers, Beatrix Potter and Pancho Villa. Every one of them would have missed
+their track's cut on fame alone.
+
 `THEME_OVERRIDES` pins people the occupation scoring files oddly. Wikidata's
 "writer" is a catch-all that lands on anyone who published anything, so it drags
 explorers and presidents into the letters track — Amelia Earhart was filed under
 Writers & Philosophers. Entries are keyed by label, and the build reports any
 that matched nobody, so a renamed label surfaces instead of silently doing
 nothing.
+
+`OCCUPATION_PINS` is the newer and more useful lever, because it fixes classes
+of mistake rather than individuals. A few occupations sit in two subclass trees
+at once and the tree that claims them first is not the one a player would pick.
+Three cases accounted for nearly all the misfiling at 288 levels: "autobiographer"
+and "biographer" hang off *historian*, so anyone who wrote a memoir — Patton,
+P. T. Barnum, Kissinger, Lewis Carroll — was filed with the philosophers; the
+social sciences hang off *scientist*, which put Keynes and Adam Smith in among
+the physicists; and "president", "governor" and "First Lady" hang off the ruler
+tree, which was filing American vice-presidents as nobility. Eighteen pinned
+QIDs fixed all of it. Reach for `THEME_OVERRIDES` only for what is left over.
+
+`BLACKLIST` is for source files that pass every automated check and are still
+not signatures. Max Weber's is the type case, and the next one will look like
+it: an auto-trace off a poor scan carrying 4876 points across 45 contours where
+the corpus median is 411, so the line wanders by a unit or two at every step. It
+draws as perfectly plausible handwriting on the contact sheet. What gave it away
+was the sweep — a *perfect* trace of it scored 45%, with line quality at zero,
+because the reference line itself has the tremor the score exists to detect.
+There is no such thing as tracing it well.
 
 `EXCLUDE_NAMES` drops people entirely: a group of Nazi figures, who would be grim
 company in a lighthearted game whatever their historical weight, and athletes who

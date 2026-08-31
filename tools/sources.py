@@ -111,14 +111,21 @@ SELECT ?p ?pLabel ?sig ?sitelinks ?dob ?dod ?occ ?article WHERE {
 # Sitelink bands, sized so no single query is heavy enough to hit the WDQS
 # gateway timeout. One unbounded query reliably 504s.
 #
-# The floor sits at 25 rather than somewhere more selective because of the
+# The floor sits at 5 rather than somewhere more selective because of the
 # explorers: it is much the smallest pool - there are twenty politicians with a
 # signature on file for every mountaineer - and requiring every signature to be
-# wide cut it below a full track. The tail is only ever reached by the tracks
-# that need it, since candidates are taken in descending fame order and the
-# others fill up long before.
-_BANDS = [(25, 40), (40, 55), (55, 75), (75, 100), (100, 140), (140, 220),
-          (220, 100000)]
+# wide cuts it roughly in half again. Counted end to end, every explorer and
+# aviator on Wikidata with a wide SVG signature and a date of death comes to
+# about 45 people; a track of 36 needs essentially all of them, and that is what
+# sets this number. It is measured, not chosen: at a floor of 25 the track can
+# only fill 28 levels, and no other track is anywhere near its own limit.
+#
+# The tail is only ever reached by the tracks that need it, since candidates are
+# taken in descending fame order and the others fill up long before. Writers
+# stop around 130 sitelinks, statesmen around 130; the explorers are alone down
+# here.
+_BANDS = [(5, 12), (12, 25), (25, 40), (40, 55), (55, 75), (75, 100),
+          (100, 140), (140, 220), (220, 100000)]
 
 
 def _year(iso):
@@ -129,6 +136,24 @@ def _year(iso):
         return None
     y = int(m.group(2))
     return -y if m.group(1) else y
+
+
+def _name_from_article(url):
+    """The English Wikipedia title, which beats the Wikidata label as a name.
+
+    The label service answers in the first of "en,de,fr,es,it" that has a
+    label, and for a few people Wikidata carries no English label at all -
+    which had the game showing "Rosa Luxemburgo". Where an English label does
+    exist it is still sometimes not the name a reader expects: "Benedictus de
+    Spinoza", "Elizabeth I of England", "Franklin Delano Roosevelt". The
+    article title is the name Wikipedia settled on after an argument, and every
+    person in the pool has one.
+
+    The parenthetical disambiguator goes: "Nadar (photographer)" is a
+    filename, not a name.
+    """
+    title = urllib.parse.unquote(url.rsplit("/", 1)[-1]).replace("_", " ")
+    return re.sub(r"\s*\([^)]*\)$", "", title).strip()
 
 
 def fetch_candidates(verbose=True):
@@ -147,14 +172,9 @@ def fetch_candidates(verbose=True):
             qid = r["p"]["value"].rsplit("/", 1)[-1]
             rec = people.get(qid)
             if rec is None:
-                name = r.get("pLabel", {}).get("value", qid)
-                # An unlabelled entity comes back as its own Q-id; useless as
-                # a level title, so drop it.
-                if re.fullmatch(r"Q\d+", name):
-                    continue
                 rec = people[qid] = {
                     "qid": qid,
-                    "name": name,
+                    "name": r.get("pLabel", {}).get("value", qid),
                     "file": urllib.parse.unquote(
                         r["sig"]["value"].rsplit("/", 1)[-1]).replace("_", " "),
                     "sitelinks": int(r["sitelinks"]["value"]),
@@ -170,6 +190,16 @@ def fetch_candidates(verbose=True):
             # optional joins multiply out against occupations.
             if not rec["wiki"]:
                 rec["wiki"] = r.get("article", {}).get("value", "")
+
+    # Names last, once every row for a person has been merged and we know
+    # whether they have an article. An entity with neither an article nor a
+    # label in any of the service's languages comes back as its own Q-id,
+    # which is useless as a level title, so it goes.
+    for qid, rec in list(people.items()):
+        if rec["wiki"]:
+            rec["name"] = _name_from_article(rec["wiki"]) or rec["name"]
+        if re.fullmatch(r"Q\d+", rec["name"]):
+            del people[qid]
     return people
 
 
@@ -278,17 +308,27 @@ THEMES = [
                   "Q639669"],    # musician
     },
     {
-        "id": "letters",
-        "name": "Writers & Philosophers",
-        "blurb": "Hands better known for what they wrote.",
-        # Social scientist sits here rather than under science: its subtree
+        "id": "thought",
+        "name": "Philosophers & Historians",
+        "blurb": "The hands that argued with the world.",
+        # Listed before the writers, and that ordering is what makes the split
+        # work. Nearly every philosopher is also tagged "writer", so with the
+        # writers first this track would be emptied into theirs. Social
+        # scientist sits here rather than under science: its subtree
         # (economist, sociologist, political scientist) hangs off "scientist"
-        # in Wikidata, which was filing Marx and Gandhi as scientists. Listed
-        # before science so the overlapping QIDs resolve this way.
-        "roots": ["Q36180",      # writer
-                  "Q4964182",    # philosopher
+        # in Wikidata, which was filing Marx as a scientist.
+        "roots": ["Q4964182",    # philosopher
                   "Q201788",     # historian
                   "Q2374149"],   # social scientist
+    },
+    {
+        "id": "letters",
+        "name": "Writers & Poets",
+        "blurb": "Hands better known for what they wrote.",
+        "roots": ["Q36180",      # writer
+                  "Q49757",      # poet
+                  "Q214917",     # playwright
+                  "Q6625963"],   # novelist
     },
     {
         "id": "science",
@@ -302,12 +342,24 @@ THEMES = [
                   "Q81096"],     # engineer
     },
     {
-        "id": "statesmen",
-        "name": "Heads of State & Statesmen",
-        "blurb": "The signatures that moved borders.",
-        "roots": ["Q82955",      # politician
-                  "Q116",        # monarch
+        "id": "crown",
+        "name": "Monarchs & Nobility",
+        "blurb": "Hands with a crown standing behind them.",
+        # Before the statesmen, so that a king who was also a politician reads
+        # as a king. Wikidata carries two unrelated "ruler" items and neither
+        # subclasses the other, hence both.
+        "roots": ["Q116",        # monarch
                   "Q12097",      # ruler
+                  "Q1097498",    # ruler (a second, unconnected item)
+                  "Q11573099",   # royalty
+                  "Q2478141",    # aristocrat
+                  "Q5784340"],   # consort
+    },
+    {
+        "id": "statesmen",
+        "name": "Statesmen & Revolutionaries",
+        "blurb": "Hands that redrew the world, or argued it into shape.",
+        "roots": ["Q82955",      # politician
                   "Q189290",     # military officer
                   "Q193391",     # diplomat
                   "Q3242115",    # revolutionary
@@ -338,6 +390,47 @@ GENERIC = {
     "Q37226",      # teacher
     "Q15980158",   # non-fiction writer
     "Q49757",      # poet -- attached to a great many people incidentally
+    "Q2478141",    # aristocrat -- a fact of birth, not a thing someone did
+    "Q11573099",   # royalty -- likewise
+}
+
+# Occupations that sit in two subclass trees at once, where the tree that
+# claims them first is not the one a player would pick. Applied on top of the
+# expanded closures, so they win outright.
+#
+# Nearly all of these are one of three recurring mistakes, and each one was
+# visible in the tracks before it was fixed:
+#
+#   "autobiographer" and "biographer" hang off historian, so anyone who wrote
+#   a memoir landed with the philosophers - Patton, P. T. Barnum, Kissinger
+#   and Lewis Carroll were all filed as thinkers on the strength of it.
+#
+#   the social sciences hang off "scientist", which put Keynes, Adam Smith and
+#   Max Weber in among the physicists. Their home was always meant to be the
+#   philosophers' track; that is what "social scientist" is doing in its roots.
+#
+#   "president", "governor" and "First Lady" hang off the ruler tree, which
+#   was filing American vice-presidents and presidential wives as nobility.
+#   Elective office is not a crown.
+OCCUPATION_PINS = {
+    "Q18814623": "letters",    # autobiographer
+    "Q11774156": "letters",    # memoirist
+    "Q864380":   "letters",    # biographer
+    "Q18939491": "letters",    # diarist
+    "Q4263842":  "letters",    # literary critic
+    "Q17167049": "letters",    # literary scholar
+    "Q188094":   "thought",    # economist
+    "Q1227195":  "thought",    # political economist
+    "Q1238570":  "thought",    # political scientist
+    "Q2306091":  "thought",    # sociologist
+    "Q30461":    "statesmen",  # president
+    "Q132050":   "statesmen",  # governor
+    "Q203184":   "statesmen",  # First Lady
+    "Q1259323":  "statesmen",  # traditional leader or chief
+    "Q1414443":  "stage",      # filmmaker
+    "Q222344":   "stage",      # cinematographer
+    "Q7042855":  "stage",      # film editor
+    "Q1208175":  "stage",      # camera operator
 }
 
 _SUBCLASS_QUERY = """
@@ -376,6 +469,7 @@ def occupation_index(verbose=True):
         for root in theme["roots"]:
             for qid in by_root.get(root, {root}):
                 index.setdefault(qid, theme["id"])
+    index.update(OCCUPATION_PINS)
     if verbose:
         print("  occupation index: %d occupations -> %d themes"
               % (len(index), len(THEMES)))
@@ -407,14 +501,53 @@ THEME_OVERRIDES = {
     # Churchill would belong here too, but Wikidata has no SVG of his hand.
 
     "Johann Wolfgang von Goethe": "letters",   # a dozen naturalist occupations
-    "Martin Luther":              "letters",   # scored into arts as a hymnodist
-    "Friedrich Nietzsche":        "letters",   # likewise, as a composer
-    "Immanuel Kant":              "letters",   # astronomer occupation outweighed him
-    "René Descartes":             "letters",   # mathematician, known as a thinker
+    "Martin Luther":              "thought",   # scored into arts as a hymnodist
+    "Friedrich Nietzsche":        "thought",   # likewise, as a composer
+    "Immanuel Kant":              "thought",   # astronomer occupation outweighed him
+    "René Descartes":             "thought",   # mathematician, known as a thinker
     "Isaac Newton":               "science",   # "natural philosopher" reads as letters
     "Leonardo da Vinci":          "arts",      # scored into science
     "Mahatma Gandhi":             "statesmen",
     "Thomas Jefferson":           "statesmen", # inventor occupation outweighed him
+
+    # Three American presidents whose day jobs outscored the presidency: Hoover
+    # really was a mining engineer and Yeltsin a civil engineer, and Kissinger
+    # a political scientist. All true, and all read as the classifier being
+    # broken.
+    "Herbert Hoover":             "statesmen",
+    "Boris Yeltsin":              "statesmen",
+    "Henry Kissinger":            "statesmen",
+    "Leonid Kravchuk":            "statesmen", # a film-actor credit, like Reagan
+    "Paul Revere":                "statesmen", # silversmith: no track claims him
+    "P. T. Barnum":               "stage",
+    # Nabokov's lepidoptery is not a joke - he named species - but it outscored
+    # the novels, which is not how anybody thinks of him.
+    "Vladimir Nabokov":           "letters",
+    # Wikidata lists exactly two occupations for her, librettist and musician,
+    # which is how a nun ended up filed with the poets.
+    "Mother Teresa":              "statesmen",
+    # Monarchs who wrote music. Both genuinely composed; both read as errors
+    # sitting in a track of painters.
+    "Henry VIII":                 "crown",
+    "Bhumibol Adulyadej":         "crown",
+    "Galyani Vadhana":            "crown",     # a Thai princess with a pilot's licence
+
+    # Second pass, after the occupation pins above fixed the classes of error
+    # and left the individuals. Every one of these is a true fact about the
+    # person that reads as a broken classifier on a card.
+    "Andy Warhol":                "arts",      # films outscored the paintings
+    "Samuel Beckett":             "letters",   # likewise, his films
+    "Samuel Morse":               "science",   # a celebrated portrait painter first
+    "William Herschel":           "science",   # a working composer before an astronomer
+    "Arthur Schopenhauer":        "thought",   # filed as a scientist, of all things
+    "Florence Nightingale":       "science",   # a statistician, which now means philosophy
+    "Salvador Allende":           "statesmen", # a physician
+    # Economists who ran countries. Pinning economics to the philosophers is
+    # right for Keynes and Smith and wrong for these four.
+    "Dag Hammarskjöld":           "statesmen",
+    "Carlo Azeglio Ciampi":       "statesmen",
+    "Horst Köhler":               "statesmen",
+    "Theodor Heuss":              "statesmen",
 }
 
 # Signatures too well known to leave to a popularity ranking. Sitelinks measure
@@ -441,6 +574,47 @@ PRIORITY = {
     "Alexander Hamilton",
     "Theodore Roosevelt",
     "Ernest Hemingway",
+
+    # The rest of these are here for the same reason Hancock is, and it is
+    # worth saying what that reason is, because it is the most interesting
+    # thing this list does. Some signatures are famous *as signatures*, quite
+    # apart from the person: because the document they sit on is the artefact,
+    # because the hand itself became a trademark, or because so few of them
+    # survive that collectors price them by the letter. Sitelinks cannot see
+    # any of that. Every name below would have missed its track's cut on fame
+    # alone, most of them by a wide margin.
+    #
+    # Button Gwinnett is the extreme case and the reason this rule exists at
+    # all: 19 sitelinks, dead in a duel a year after signing the Declaration,
+    # and roughly fifty surviving examples of his hand - which makes his the
+    # most valuable autograph in America by a distance nobody else is close to.
+    "Button Gwinnett",
+    "Josiah Bartlett",       # signed the Declaration directly under Hancock
+    "Richard Henry Lee",
+    "Paul Revere",
+    "John Paul Jones",
+    "Marquis de Lafayette",
+    # The American frontier, where the signature was often the whole point:
+    # Boone's shaky hand and Cody's showman's flourish are both collected far
+    # out of proportion to the sitelinks either man carries.
+    "Daniel Boone",
+    "Davy Crockett",
+    "Meriwether Lewis",
+    "William Clark",
+    "Kit Carson",
+    "Wild Bill Hickok",
+    "Wyatt Earp",
+    "Annie Oakley",
+    "Buffalo Bill",
+    "Sitting Bull",          # sold his autograph on the Wild West circuit
+    # First flight, and the paperwork that proved it.
+    "Orville Wright",
+    "Wilbur Wright",
+    # A hand that became a logo.
+    "Beatrix Potter",
+    # Iconic in Mexico, and nowhere near the statesmen's cut on sitelinks.
+    "Emiliano Zapata",
+    "Pancho Villa",
 }
 
 # Difficulty adjustments, in points, for signatures where playing the thing
@@ -470,7 +644,18 @@ DIFFICULTY_NUDGE = {
 # is a monogram rather than a signature. The checks there are deliberately
 # loose so they never discard a good signature; this is the escape hatch.
 # Review tools/sheet_*.png after a build and add offenders here.
-BLACKLIST = set()
+#
+# Max Weber's file is the type case and worth describing, since the next one
+# will look like it: an auto-trace off a poor scan, 4876 points across 45
+# contours where the corpus median is 411, so the line wanders by a unit or two
+# at every single step. It draws as a plausible signature and passes every
+# automated check, but there is no such thing as tracing it well - the sweep had
+# a *perfect* trace of it scoring 45%, with line quality at zero, because the
+# reference line itself has the tremor the score is looking for. Density like
+# that is the tell: he was a four-fold outlier over the next densest signature.
+BLACKLIST = {
+    "Max Weber's Signature.svg",
+}
 
 # Dropped from the corpus entirely. The first group would be grim company in a
 # lighthearted game whatever their historical weight; the second are athletes
@@ -484,8 +669,15 @@ EXCLUDE_NAMES = {
     # Reached the corpus once the fame floor came down, and scored into Stage &
     # Screen off his film-producer credits, of all things. Same call as the
     # group above.
-    "Kim Jong-il",
+    "Kim Jong Il", "Saddam Hussein",
+    # Riefenstahl and Mölders reach the corpus as a director and a pilot, which
+    # is true and is not the point; same call as the group above.
+    "Leni Riefenstahl", "Werner Mölders",
     "Pelé", "Diego Maradona", "Kobe Bryant",
+
+    # A murdered child, whose hand is famous for the worst reason there is.
+    # Nothing to do with her; this game is not the place.
+    "Anne Frank",
 
     # Not a signature the way the rest are: a dense document rubric, several
     # lines of compact writing plus a flourish. (It is also nowhere near wide

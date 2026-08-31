@@ -41,8 +41,8 @@ APP = os.path.join(ROOT, "docs")
 
 BOX = 1000.0          # normalized long side
 RDP_EPS = 1.1         # simplification tolerance, in BOX units
-PER_THEME = 16        # levels per track
-TRY_PER_THEME = 260   # candidates to attempt, to survive conversion failures
+PER_THEME = 36        # levels per track
+TRY_PER_THEME = 460   # candidates to attempt, to survive conversion failures
 
 # Minimum width-to-height ratio. Wide-only is a fairness rule, not taste.
 #
@@ -335,10 +335,17 @@ def gather(args):
     missing = sources.unmatched_overrides()
     if missing:
         print("  note: theme overrides matched nobody: %s" % ", ".join(missing))
-    absent = sorted(sources.PRIORITY - {p["name"] for p in people.values()})
+    pool_names = {p["name"] for p in people.values()}
+    absent = sorted(sources.PRIORITY - pool_names)
     if absent:
         print("  note: wanted but not in the pool (no SVG signature on Wikidata): %s"
               % ", ".join(absent))
+    # An exclusion that matches nobody is silent by nature, and silence here
+    # means somebody is in the game who was meant to be out. Wikipedia renamed
+    # its Kim Jong Il article at one point, which is exactly how that happens.
+    stale = sorted(sources.EXCLUDE_NAMES - pool_names)
+    if stale:
+        print("  note: EXCLUDE_NAMES entries matching nobody: %s" % ", ".join(stale))
 
     print("\nConverting artwork...")
     kept = {}
