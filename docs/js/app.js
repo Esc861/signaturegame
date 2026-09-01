@@ -159,7 +159,7 @@
     // The name links out from the header, before the level is cleared. Wanting
     // to know whose hand this is happens while you are looking at it.
     var who = $('play-name');
-    who.textContent = lv.name;
+    $('play-name-text').textContent = lv.name;
     if (lv.wiki) {
       who.href = lv.wiki;
       who.title = 'Read about ' + lv.name + ' on Wikipedia';
@@ -233,7 +233,7 @@
     var wiki = $('res-wiki');
     if (lv.wiki) {
       wiki.href = lv.wiki;
-      wiki.textContent = 'Read about ' + lv.name + ' →';
+      $('res-wiki-text').textContent = 'Read about ' + lv.name;
       wiki.parentNode.hidden = false;
     } else {
       wiki.parentNode.hidden = true;

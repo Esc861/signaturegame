@@ -278,7 +278,7 @@ THEMES = [
     {
         "id": "frontier",
         "name": "Explorers & Aviators",
-        "blurb": "Explorers, pilots and astronauts.",
+        "blurb": "Five centuries of them, from conquistadors to astronauts.",
         "roots": ["Q11900058",   # explorer
                   "Q2095549",    # aviator
                   "Q11631",      # astronaut
@@ -297,7 +297,7 @@ THEMES = [
     {
         "id": "arts",
         "name": "Artists & Composers",
-        "blurb": "Painters, sculptors and composers.",
+        "blurb": "People whose signature was part of the work.",
         # Deliberately not rooted at "artist" (Q483501): its subclass tree
         # reaches writers and performers and would swallow two other themes.
         "roots": ["Q1028181",    # painter
@@ -310,7 +310,7 @@ THEMES = [
     {
         "id": "thought",
         "name": "Philosophers & Historians",
-        "blurb": "Philosophers, historians and economists.",
+        "blurb": "The economists and sociologists are in here too.",
         # Listed before the writers, and that ordering is what makes the split
         # work. Nearly every philosopher is also tagged "writer", so with the
         # writers first this track would be emptied into theirs. Social
@@ -324,7 +324,7 @@ THEMES = [
     {
         "id": "letters",
         "name": "Writers & Poets",
-        "blurb": "Novelists, poets and playwrights.",
+        "blurb": "Famous for what they wrote, not how they wrote it.",
         "roots": ["Q36180",      # writer
                   "Q49757",      # poet
                   "Q214917",     # playwright
@@ -333,7 +333,7 @@ THEMES = [
     {
         "id": "science",
         "name": "Scientists & Inventors",
-        "blurb": "The people behind the discoveries.",
+        "blurb": "Physicists, doctors, engineers and mathematicians.",
         "roots": ["Q901",        # scientist
                   "Q205375",     # inventor
                   "Q170790",     # mathematician
@@ -344,7 +344,7 @@ THEMES = [
     {
         "id": "crown",
         "name": "Monarchs & Nobility",
-        "blurb": "Kings, queens and the courts around them.",
+        "blurb": "Many signed a first name and a title, and nothing else.",
         # Before the statesmen, so that a king who was also a politician reads
         # as a king. Wikidata carries two unrelated "ruler" items and neither
         # subclasses the other, hence both.
@@ -358,7 +358,7 @@ THEMES = [
     {
         "id": "statesmen",
         "name": "Statesmen & Revolutionaries",
-        "blurb": "Presidents, generals and campaigners.",
+        "blurb": "Presidents and generals, and the people who pushed back.",
         "roots": ["Q82955",      # politician
                   "Q189290",     # military officer
                   "Q193391",     # diplomat
