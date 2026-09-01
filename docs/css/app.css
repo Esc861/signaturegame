@@ -198,38 +198,38 @@ body {
 /* The arrow is drawn rather than typed. U+2190 sits differently in every
    system font - in Segoe UI it rides high in its box and is drawn far too
    light for a 1px-ruled button - and no amount of line-height fixes a glyph
-   whose own metrics are the problem. Two rules and a corner always centre. */
+   whose own metrics are the problem.
+
+   One stroked path, not a shaft and a head assembled from two boxes: those
+   have to be positioned against each other in pixels, and being a few out
+   leaves a visible gap at the joint and throws the whole arrow off centre.
+   A single polyline with a round join cannot come apart, and the path is
+   drawn symmetrically inside its viewBox, so centring the box centres the
+   arrow. */
 .back {
-  position: relative;
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 38px; height: 38px;
+  padding: 0;
   border: 1px solid var(--rule);
   background: var(--card);
   color: var(--ink);
   border-radius: 50%;
-  font-size: 0;
-  line-height: 0;
   cursor: pointer;
 }
-.back::before,
-.back::after {
-  content: '';
-  position: absolute;
-  left: 50%; top: 50%;
+.back svg {
+  display: block;
+  width: 21px; height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
-.back::before {                       /* the shaft */
-  width: 14px; height: 2.5px;
-  border-radius: 2px;
-  background: currentColor;
-  transform: translate(-50%, -50%);
-}
-.back::after {                        /* the head */
-  width: 9px; height: 9px;
-  border-left: 2.5px solid currentColor;
-  border-bottom: 2.5px solid currentColor;
-  border-radius: 1px;
-  transform: translate(-95%, -50%) rotate(45deg);
-}
+.bar-play .back svg { width: 19px; height: 19px; stroke-width: 2.2; }
+
 .bar-title { flex: 1; min-width: 0; }
 .bar-title h2 {
   margin: 4px 0 0;
@@ -360,9 +360,13 @@ body {
 .bar-play .bar-title h2 a[href]:hover,
 .bar-play .bar-title h2 a[href]:focus-visible { text-decoration: underline; }
 .bar-play .bar-title h2 a[href]::after {
-  content: ' ↗';
+  content: '↗';
+  /* Sized off the name rather than in pixels, so it reads as part of the
+     word. At a fixed 11px against a 17px serif name it looked like a
+     speck of dust. */
   font-family: var(--sans);
-  font-size: 11px;
+  font-size: .82em;
+  margin-left: .18em;
   color: var(--muted);
 }
 
@@ -571,14 +575,6 @@ body {
 .sw-good { background: var(--good); }
 .sw-mid  { background: var(--mid); }
 .sw-bad  { background: var(--accent); }
-
-.examiner {
-  margin: 10px 0 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--muted);
-  max-width: 46ch;
-}
 
 .readmore { margin: 10px 0 0; font-size: 13px; }
 .readmore a { color: var(--accent); text-decoration: none;

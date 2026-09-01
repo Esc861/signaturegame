@@ -402,13 +402,44 @@ tree, which was filing American vice-presidents as nobility. Eighteen pinned
 QIDs fixed all of it. Reach for `THEME_OVERRIDES` only for what is left over.
 
 `BLACKLIST` is for source files that pass every automated check and are still
-not signatures. Max Weber's is the type case, and the next one will look like
-it: an auto-trace off a poor scan carrying 4876 points across 45 contours where
-the corpus median is 411, so the line wanders by a unit or two at every step. It
-draws as perfectly plausible handwriting on the contact sheet. What gave it away
-was the sweep — a *perfect* trace of it scored 45%, with line quality at zero,
-because the reference line itself has the tremor the score exists to detect.
-There is no such thing as tracing it well.
+not signatures, and the two entries in it fail in opposite directions.
+
+Max Weber's is *noise*: an auto-trace off a poor scan carrying 4876 points across
+45 contours where the corpus median is 411, so the line wanders by a unit or two
+at every step. It draws as perfectly plausible handwriting on the contact sheet.
+What gave it away was the sweep — a *perfect* trace of it scored 45%, with line
+quality at zero, because the reference line itself has the tremor the score
+exists to detect. There is no such thing as tracing it well.
+
+Claude Monet's is *loss*: one filled path whose subpaths do not join up, so the
+name arrives with its connecting strokes missing and the letters in pieces.
+Worth checking before blaming the pipeline — all 20 of its subpaths survive to
+the corpus exactly as the file draws them. The source is simply poor.
+
+### Invisible paths, and why they were not invisible
+
+`fill:none` with no stroke paints nothing, and a file doing it is neither rare
+nor malformed: an Illustrator export of a hand-traced signature routinely keeps
+the guide path the artist drew along, invisible, right beside the filled outline
+that is the actual ink. The parser used to ignore the `fill` attribute and
+render both.
+
+That is not a subtle error. A guide path is one long open curve; close it and
+fill it and you get a solid lens of ink the size of the letter it was guiding.
+Roald Amundsen arrived with the bowl of his R and the A of Amundsen filled in as
+black blobs — a third of his ink was paths a browser would not have drawn — and
+every automated check passed him, because as far as those were concerned the
+blobs were ink.
+
+Auditing all 288 files afterwards found exactly two affected, Amundsen badly and
+Joseph P. Kennedy Jr. by 0.2% of his ink, so the bug was rare and severe rather
+than widespread. The same pass checked the other ways a file can defeat the
+parser: one uses a CSS `<style>` block for its fill (harmless — it *sets* a
+colour, and an absent `fill` already defaults to painted), eighteen embed the
+original scan as an `<image>` beside the trace (harmless — `<image>` yields no
+geometry), and one carries a 2.6% minority of stroked shapes in an otherwise
+filled file. After the fix the fattest blob anywhere is 67% of the limit the
+build allows.
 
 `EXCLUDE_NAMES` drops people entirely: a group of Nazi figures, who would be grim
 company in a lighthearted game whatever their historical weight, and athletes who

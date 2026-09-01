@@ -566,7 +566,6 @@ PRIORITY = {
     "Jane Austen",
     "Edgar Allan Poe",
     "Oscar Wilde",
-    "Claude Monet",
     "Audrey Hepburn",
     "Susan B. Anthony",
     "Frederick Douglass",
@@ -655,6 +654,12 @@ DIFFICULTY_NUDGE = {
 # that is the tell: he was a four-fold outlier over the next densest signature.
 BLACKLIST = {
     "Max Weber's Signature.svg",
+    # The other way a file can be unusable: not noise but loss. This one is a
+    # single filled path whose subpaths simply do not join up - "Claude Monet"
+    # arrives with the connecting strokes missing and the letters in pieces.
+    # Nothing in the pipeline drops them; all 20 subpaths survive to the corpus
+    # exactly as the file draws them. The source is just poor.
+    "Claude Monet Signature.svg",
 }
 
 # Dropped from the corpus entirely. The first group would be grim company in a

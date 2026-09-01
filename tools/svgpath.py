@@ -365,7 +365,8 @@ def path_to_subpaths(d, quality=1.0):
 
 def _style_map(el):
     """Presentation attributes, with inline style= winning."""
-    keys = ("fill", "stroke", "stroke-width", "fill-rule")
+    keys = ("fill", "stroke", "stroke-width", "fill-rule",
+            "display", "visibility")
     out = {}
     for k in keys:
         v = el.get(k)
@@ -382,16 +383,43 @@ def _style_map(el):
     return out
 
 
-def _kind(style):
-    """Is this shape a stroked centerline or a filled outline?
+def _paints(style):
+    """(has_fill, has_stroke) for a shape carrying this style.
 
     SVG's default fill is black, so a shape with neither attribute set is
     filled. That default matters: plenty of Commons traces set nothing at all.
     """
     fill = style.get("fill", "").lower()
     stroke = style.get("stroke", "").lower()
-    has_fill = fill not in ("none", "transparent")
-    has_stroke = bool(stroke) and stroke not in ("none", "transparent")
+    return (fill not in ("none", "transparent"),
+            bool(stroke) and stroke not in ("none", "transparent"))
+
+
+def _visible(style):
+    """Would a browser paint anything at all for this shape?
+
+    fill:none with no stroke paints nothing, and the files that do it are not
+    rare or malformed: Illustrator exports of a hand-traced signature routinely
+    keep the guide path the artist drew along, invisible, right beside the
+    filled outline that is the actual ink.
+
+    Rendering those anyway is not a subtle error. A guide path is one long open
+    curve; close it and fill it and you get a solid lens of ink the size of the
+    letter it was guiding. Roald Amundsen arrived with the bowl of his R and the
+    A of Amundsen filled in as black blobs, and every automated check passed
+    him, because as far as those were concerned the blobs were ink.
+    """
+    has_fill, has_stroke = _paints(style)
+    if style.get("display", "").lower() == "none":
+        return False
+    if style.get("visibility", "").lower() == "hidden":
+        return False
+    return has_fill or has_stroke
+
+
+def _kind(style):
+    """Is this shape a stroked centerline or a filled outline?"""
+    has_fill, has_stroke = _paints(style)
     if has_stroke and not has_fill:
         return "centerline"
     return "outline"
@@ -476,7 +504,10 @@ def parse_svg(svg_text, quality=1.0):
         style.update(_style_map(el))
 
         rule = style.get("fill-rule", "nonzero").lower()
+        paints = _visible(style)
         for pts, closed in _shape_subpaths(el, tag, quality):
+            if not paints:
+                continue
             shapes.append({
                 "points": [mat_apply(mat, px, py) for px, py in pts],
                 "closed": closed,
