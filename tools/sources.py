@@ -287,7 +287,7 @@ THEMES = [
     {
         "id": "stage",
         "name": "Stage & Screen",
-        "blurb": "Actors and singers, used to being asked.",
+        "blurb": "Actors, directors and singers.",
         "roots": ["Q33999",      # actor
                   "Q2526255",    # film director
                   "Q177220",     # singer
