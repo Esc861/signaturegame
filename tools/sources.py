@@ -278,7 +278,7 @@ THEMES = [
     {
         "id": "frontier",
         "name": "Explorers & Aviators",
-        "blurb": "Five centuries of them, from conquistadors to astronauts.",
+        "blurb": "Conquistadors, polar explorers, pilots and astronauts.",
         "roots": ["Q11900058",   # explorer
                   "Q2095549",    # aviator
                   "Q11631",      # astronaut
@@ -297,7 +297,7 @@ THEMES = [
     {
         "id": "arts",
         "name": "Artists & Composers",
-        "blurb": "People whose signature was part of the work.",
+        "blurb": "Signatures that were part of the work.",
         # Deliberately not rooted at "artist" (Q483501): its subclass tree
         # reaches writers and performers and would swallow two other themes.
         "roots": ["Q1028181",    # painter
@@ -324,7 +324,7 @@ THEMES = [
     {
         "id": "letters",
         "name": "Writers & Poets",
-        "blurb": "Famous for what they wrote, not how they wrote it.",
+        "blurb": "The fame came from the writing, not the handwriting.",
         "roots": ["Q36180",      # writer
                   "Q49757",      # poet
                   "Q214917",     # playwright
@@ -344,7 +344,7 @@ THEMES = [
     {
         "id": "crown",
         "name": "Monarchs & Nobility",
-        "blurb": "Many signed a first name and a title, and nothing else.",
+        "blurb": "A royal signature is often just a first name and a title.",
         # Before the statesmen, so that a king who was also a politician reads
         # as a king. Wikidata carries two unrelated "ruler" items and neither
         # subclasses the other, hence both.

@@ -75,11 +75,11 @@
   // What an honest player actually does: follow the middle of the visible
   // ribbon, once. Built by pushing each contour point inward along its normal
   // by half the pen width, which collapses both sides of a stroke onto its
-  // centre, and then keeping only the first half of each contour - a ribbon
+  // center, and then keeping only the first half of each contour - a ribbon
   // outline runs out along one edge and back along the other, so half of it is
   // one complete pass. Without that trim this "honest" baseline silently drew
   // every signature twice, which hid how the travel budget really behaves.
-  function centreline(level) {
+  function centerline(level) {
     if (level.kind === 'centerline') {
       return SG.geom.contours(level).map(function (pts) {
         return pts.map(function (p) { return { x: p.x, y: p.y }; });
@@ -284,7 +284,7 @@
 
   picked.forEach(function (e) {
     var lv = e.lv, diag = SG.geom.diagonal(lv), need = lv['pass'];
-    var mid = centreline(lv);
+    var mid = centerline(lv);
 
     // Hand error is sized against the pen, not the diagonal: two pen widths of
     // wander means the same thing to a player on a fine hand and a fat one,
@@ -316,7 +316,7 @@
 
     lines.push(lv.name + '  [' + lv.kind + ', pen ' + lv.pen + ', needs ' + need + '%]');
     lines.push('  honest');
-    lines.push('    centreline    ' + pct(rGood));
+    lines.push('    centerline    ' + pct(rGood));
     lines.push('    slight wobble ' + pct(rNear));
     lines.push('    loose         ' + pct(rLoose));
     lines.push('    wild          ' + pct(rWild));
@@ -338,6 +338,10 @@
                   ['zigzag x24', rZig24], ['vertical x14', rVz14],
                   ['vertical x20', rVz20], ['overscribble', rOver],
                   ['random scrawl', rScrib]];
+    var bestCheat = Math.max.apply(null, cheats.map(function (c) {
+      return c[1].accuracy;
+    }));
+
     cheats.forEach(function (c) {
       check(lv.name + ': ' + c[0] + ' must not pass', c[1].accuracy < need,
             c[1].accuracy + ' vs needs ' + need);
@@ -363,9 +367,17 @@
           'economy ' + rLoose.economy);
     check(lv.name + ': going over it twice still clears', rTwice.accuracy >= need,
           rTwice.accuracy + ' vs needs ' + need);
-    check(lv.name + ': tracing both edges still clears', rEdge.accuracy >= need,
-          rEdge.accuracy + ' vs needs ' + need);
-    // Economy is not the only defence - precision already ruins a scribble that
+    // Tracing both edges of the ink instead of its middle is honest but
+    // worse: the outline is longer than the line it encloses, so it costs
+    // travel and precision. This used to assert that it still cleared the
+    // pass mark, and went red when the bar moved from 66-76 to 70-80 - which
+    // is the bar doing what it was raised to do, not a scoring fault. The
+    // invariant worth keeping is that an honest strategy, however inferior,
+    // never scores down among the cheats.
+    check(lv.name + ': tracing both edges beats every cheat',
+          rEdge.accuracy > bestCheat,
+          rEdge.accuracy + ' vs best cheat here ' + bestCheat);
+    // Economy is not the only defense - precision already ruins a scribble that
     // wanders off the line - so this only asserts that gross overdrawing is
     // charged for, not that every cheat is stopped by economy alone.
     check(lv.name + ': gross overdrawing costs economy', rOver.economy < 50,
@@ -399,13 +411,13 @@
 
     levels.forEach(function (e) {
       var lv = e.lv, need = lv['pass'], diag = SG.geom.diagonal(lv);
-      var mid = centreline(lv);
+      var mid = centerline(lv);
       var base = SG.grade.score(lv, mid);
       var steady = Math.min(lv.pen * 1.2, diag * 0.010);
       var shaky = Math.min(lv.pen * 2.2, diag * 0.020);
 
-      // Levels whose synthetic centreline under-draws are the generator's
-      // fault, not the scorer's, so they cannot speak to honest behaviour.
+      // Levels whose synthetic centerline under-draws are the generator's
+      // fault, not the scorer's, so they cannot speak to honest behavior.
       if (base.travelRatio >= 0.85) {
         [['clean', mid], ['steady', wobble(mid, steady, 7)],
          ['shaky', wobble(mid, shaky, 11)], ['twice', mid.concat(mid)],

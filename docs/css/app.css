@@ -575,9 +575,9 @@ body {
    that has it, and at the size this wants it read as a speck of dust.
 
    Sized in em so it scales with whatever it sits beside, and stroked in
-   currentColor so it takes the colour of its own link: dark beside the name,
+   currentColor so it takes the color of its own link: dark beside the name,
    oxblood on the result sheet. That is the consistency worth having, rather
-   than one fixed size and colour in two places that are neither. */
+   than one fixed size and color in two places that are neither. */
 .ext {
   width: .82em;
   height: .82em;
