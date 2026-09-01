@@ -29,7 +29,8 @@
     // stale the moment the tracks grew.
     var total = DATA.themes.reduce(function (n, t) { return n + t.levels.length; }, 0);
     $('lede').textContent = total + ' signatures across ' + DATA.themes.length
-      + ' collections. Each one you master unlocks a harder hand.';
+      + ' collections. Clear one to unlock the next, each harder'
+      + ' than the last.';
 
     var wrap = $('tracks');
     wrap.textContent = '';
@@ -175,7 +176,7 @@
     $('result').hidden = true;
     $('play-hint').textContent = store.seenIntro()
       ? 'Keep the line steady and flowing.'
-      : 'Trace the grey signature. A steady, flowing line counts for more than'
+      : 'Trace the gray signature. A steady, flowing line counts for more than'
         + ' landing it exactly.';
     store.seenIntro(true);
 
@@ -216,14 +217,14 @@
     // Name the weakest part, so a low score says what went wrong rather than
     // just how badly. Steadiness first: it is what an examiner looks at first.
     var note = '';
-    if (res.economy < 70) note = ' Too much ink — you drew far further than the signature.';
+    if (res.economy < 70) note = ' Too much ink — you drew a lot further than the signature.';
     else if (res.fluency < 70) note = ' Your line wavered. Slow down and keep it flowing.';
     else if (res.coverage < res.precision - 12) note = ' You missed parts of it.';
     else if (res.precision < res.coverage - 12) note = ' You drifted off the line.';
 
     $('res-need').textContent = (passed
       ? 'You needed ' + lv['pass'] + '%.'
-      : 'You need ' + lv['pass'] + '% to unlock the next hand.')
+      : 'You need ' + lv['pass'] + '% to unlock the next signature.')
       + note + ' Best ' + Math.max(prevBest, res.accuracy) + '%.';
     $('res-flu').textContent = res.fluency + '%';
     $('res-prec').textContent = res.precision + '%';
@@ -354,16 +355,16 @@
     if (why === 'turn') {
       $('gate-title').textContent = 'Turn it sideways';
       $('gate-body').textContent = isTouch()
-        ? 'These signatures are written wide. Held upright there is nowhere '
-          + 'near enough room for one, so the game is played in landscape.'
-        : 'These signatures are written wide. Make the window wider than it '
-          + 'is tall and the card will have room for one.';
+        ? 'These signatures are wide ones. Held upright there is nowhere near '
+          + 'enough room for one, so the game is played sideways.'
+        : 'These signatures are wide ones. Make the window wider than it is '
+          + 'tall and there will be room for one.';
     } else if (why === 'touch') {
       $('gate-title').textContent = 'Made for a fingertip';
-      $('gate-body').textContent = 'Historic Ink is a tracing game for a '
-        + 'touchscreen — the difficulty is set against a finger covering the '
-        + 'line it is following. Open it on a phone or tablet for the game as '
-        + 'it is meant to play.';
+      $('gate-body').textContent = 'Historic Ink is meant for a touchscreen. '
+        + 'Half of what makes it hard is that your finger covers the line you '
+        + 'are trying to follow, which a mouse never does. Open it on a phone '
+        + 'or tablet if you can.';
     }
     // The card's size is measured off the layout, and the layout has usually
     // just changed underneath it.

@@ -166,7 +166,7 @@ def sharp_corners(pts, min_deg=60.0, min_seg=4.0):
     """Count direction changes past `min_deg`.
 
     Short segments are skipped: on a simplified contour a pair of tiny
-    neighbouring segments can meet at a steep angle without the shape
+    neighboring segments can meet at a steep angle without the shape
     actually having a corner there.
     """
     thresh = math.radians(min_deg)

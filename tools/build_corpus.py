@@ -159,7 +159,7 @@ def convert(svg_text):
     diag = math.hypot(w, h)
     m["fineness"] = diag / max(stroke_w, 0.5)
 
-    # Mean curvature: how tightly the line turns per unit travelled. Big
+    # Mean curvature: how tightly the line turns per unit traveled. Big
     # sweeping curves are easy to follow and score low here; a hand made of
     # small fiddly turns scores high.
     travel = perim / 2.0 if kind == "outline" else perim
@@ -437,7 +437,7 @@ def build(args):
         return 1
     score_difficulty(flat)
 
-    print("\nFetching licence metadata...")
+    print("\nFetching license metadata...")
     meta = sources.commons_metadata({e["person"]["file"] for e in flat})
 
     themes_out = []

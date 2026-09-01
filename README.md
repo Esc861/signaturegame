@@ -73,9 +73,9 @@ python tools/bump_cache.py --check       # exit 1 if stale, for CI
 ```
 docs/                     THE GAME — everything Pages serves, and nothing else
   index.html              the app shell; every screen lives here
-  css/app.css             ink & parchment theme; all colours are CSS variables
+  css/app.css             ink & parchment theme; all colors are CSS variables
   css/wordmark.css        GENERATED. the wordmark typeface, subset and inlined
-  fonts/                  the typeface's licence
+  fonts/                  the typeface's license
   js/geom.js              signature space <-> screen space
   js/ink.js               painting signatures and strokes; masks + distance fields
   js/grade.js             accuracy scoring
@@ -153,7 +153,7 @@ the result.
 
 Before any of that, the attempt is nudged onto the target by up to 3.5% of the
 diagonal, so a well-formed but transposed trace is not punished for the one thing
-nobody judges. Two details make that work rather than backfire: both centres are
+nobody judges. Two details make that work rather than backfire: both centers are
 measured from the *rendered ink* (the target's stored contour points are a
 different quantity, weighted by however densely that file was traced, and using
 one against the other dragged correct attempts off the mark), and the nudge is
@@ -367,7 +367,7 @@ the browser does no parsing or geometry prep at load.
 Sitelinks measure how famous the *person* is, which is not how famous their
 *hand* is. `PRIORITY` in `tools/sources.py` pulls a list of signatures to the
 front of their track's queue regardless of ranking — John Hancock's is the most
-recognisable signature in the English-speaking world and his 47 sitelinks had him
+recognizable signature in the English-speaking world and his 47 sitelinks had him
 nowhere near the cut.
 
 That list is the most interesting thing in the curation, because some signatures
@@ -435,7 +435,7 @@ Auditing all 288 files afterwards found exactly two affected, Amundsen badly and
 Joseph P. Kennedy Jr. by 0.2% of his ink, so the bug was rare and severe rather
 than widespread. The same pass checked the other ways a file can defeat the
 parser: one uses a CSS `<style>` block for its fill (harmless — it *sets* a
-colour, and an absent `fill` already defaults to painted), eighteen embed the
+color, and an absent `fill` already defaults to painted), eighteen embed the
 original scan as an `<image>` beside the trace (harmless — `<image>` yields no
 geometry), and one carries a 2.6% minority of stroked shapes in an otherwise
 filled file. After the fix the fattest blob anywhere is 67% of the limit the
@@ -477,12 +477,12 @@ python -m pip install fonttools brotli
 python tools/build_font.py
 ```
 
-SIL Open Font License 1.1 — the licence travels with it in
+SIL Open Font License 1.1 — the license travels with it in
 `docs/fonts/OFL-PinyonScript.txt`.
 
 ## Licensing
 
 Signature artwork comes from Wikimedia Commons, overwhelmingly public domain with
-a few CC0 and CC BY-SA files. Per-file licence and author are carried through into
+a few CC0 and CC BY-SA files. Per-file license and author are carried through into
 the corpus and listed on the app's About screen, alongside a Wikipedia link for
 each person.

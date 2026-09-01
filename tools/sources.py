@@ -278,7 +278,7 @@ THEMES = [
     {
         "id": "frontier",
         "name": "Explorers & Aviators",
-        "blurb": "Signed from the edges of the map.",
+        "blurb": "Explorers, pilots and astronauts.",
         "roots": ["Q11900058",   # explorer
                   "Q2095549",    # aviator
                   "Q11631",      # astronaut
@@ -287,7 +287,7 @@ THEMES = [
     {
         "id": "stage",
         "name": "Stage & Screen",
-        "blurb": "Autographs practised for the crowd.",
+        "blurb": "Actors and singers, used to being asked.",
         "roots": ["Q33999",      # actor
                   "Q2526255",    # film director
                   "Q177220",     # singer
@@ -297,7 +297,7 @@ THEMES = [
     {
         "id": "arts",
         "name": "Artists & Composers",
-        "blurb": "Signatures by people who signed for a living.",
+        "blurb": "Painters, sculptors and composers.",
         # Deliberately not rooted at "artist" (Q483501): its subclass tree
         # reaches writers and performers and would swallow two other themes.
         "roots": ["Q1028181",    # painter
@@ -310,7 +310,7 @@ THEMES = [
     {
         "id": "thought",
         "name": "Philosophers & Historians",
-        "blurb": "The hands that argued with the world.",
+        "blurb": "Philosophers, historians and economists.",
         # Listed before the writers, and that ordering is what makes the split
         # work. Nearly every philosopher is also tagged "writer", so with the
         # writers first this track would be emptied into theirs. Social
@@ -324,7 +324,7 @@ THEMES = [
     {
         "id": "letters",
         "name": "Writers & Poets",
-        "blurb": "Hands better known for what they wrote.",
+        "blurb": "Novelists, poets and playwrights.",
         "roots": ["Q36180",      # writer
                   "Q49757",      # poet
                   "Q214917",     # playwright
@@ -333,7 +333,7 @@ THEMES = [
     {
         "id": "science",
         "name": "Scientists & Inventors",
-        "blurb": "The hands behind the discoveries.",
+        "blurb": "The people behind the discoveries.",
         "roots": ["Q901",        # scientist
                   "Q205375",     # inventor
                   "Q170790",     # mathematician
@@ -344,7 +344,7 @@ THEMES = [
     {
         "id": "crown",
         "name": "Monarchs & Nobility",
-        "blurb": "Hands with a crown standing behind them.",
+        "blurb": "Kings, queens and the courts around them.",
         # Before the statesmen, so that a king who was also a politician reads
         # as a king. Wikidata carries two unrelated "ruler" items and neither
         # subclasses the other, hence both.
@@ -358,7 +358,7 @@ THEMES = [
     {
         "id": "statesmen",
         "name": "Statesmen & Revolutionaries",
-        "blurb": "Hands that redrew the world, or argued it into shape.",
+        "blurb": "Presidents, generals and campaigners.",
         "roots": ["Q82955",      # politician
                   "Q189290",     # military officer
                   "Q193391",     # diplomat
@@ -530,7 +530,7 @@ THEME_OVERRIDES = {
     # sitting in a track of painters.
     "Henry VIII":                 "crown",
     "Bhumibol Adulyadej":         "crown",
-    "Galyani Vadhana":            "crown",     # a Thai princess with a pilot's licence
+    "Galyani Vadhana":            "crown",     # a Thai princess with a pilot's license
 
     # Second pass, after the occupation pins above fixed the classes of error
     # and left the individuals. Every one of these is a true fact about the
@@ -552,7 +552,7 @@ THEME_OVERRIDES = {
 
 # Signatures too well known to leave to a popularity ranking. Sitelinks measure
 # how famous the *person* is, which is not the same as how famous their hand is:
-# John Hancock's is the most recognisable signature in the English-speaking
+# John Hancock's is the most recognizable signature in the English-speaking
 # world and his 47 sitelinks had him nowhere near the cut. These are pulled to
 # the front of their track's queue; they still have to convert cleanly.
 PRIORITY = {

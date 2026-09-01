@@ -70,7 +70,7 @@
     return out;
   }
 
-  /* Length-weighted centre of a set of polylines: where the ink sits. */
+  /* Length-weighted center of a set of polylines: where the ink sits. */
   function inkCentroid(strokes) {
     var sx = 0, sy = 0, w = 0;
     for (var i = 0; i < strokes.length; i++) {

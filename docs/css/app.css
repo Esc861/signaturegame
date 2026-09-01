@@ -1,5 +1,5 @@
 /* Ink & parchment.
- * Every colour lives here as a custom property; the canvas code reads --ink
+ * Every color lives here as a custom property; the canvas code reads --ink
  * and --guide off the element, so retheming does not mean touching JS.
  */
 
@@ -202,9 +202,9 @@ body {
 
    One stroked path, not a shaft and a head assembled from two boxes: those
    have to be positioned against each other in pixels, and being a few out
-   leaves a visible gap at the joint and throws the whole arrow off centre.
+   leaves a visible gap at the joint and throws the whole arrow off center.
    A single polyline with a round join cannot come apart, and the path is
-   drawn symmetrically inside its viewBox, so centring the box centres the
+   drawn symmetrically inside its viewBox, so centering the box centers the
    arrow. */
 .back {
   flex: none;
@@ -306,7 +306,7 @@ body {
 
 /* --------------------------------------------------------------- play */
 
-/* Play breaks out of the centred column and takes the whole viewport. The card
+/* Play breaks out of the centered column and takes the whole viewport. The card
    wants every pixel of width it can get, and unlike the lists there is nothing
    here that reads badly wide. Fixed rather than a tall block so the three rows
    divide up exactly what the screen has, with no scrolling to find the tools. */

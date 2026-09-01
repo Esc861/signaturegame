@@ -15,7 +15,7 @@ Needs fontTools and brotli, which are build-time only:
     python -m pip install fonttools brotli
 
 Pinyon Script is under the SIL Open Font License 1.1, which permits subsetting
-and redistribution; the licence travels with it in fonts/OFL-PinyonScript.txt.
+and redistribution; the license travels with it in fonts/OFL-PinyonScript.txt.
 """
 
 import base64
@@ -67,7 +67,7 @@ def main():
         return 1
 
     src = fetch(FILE)
-    licence = fetch("OFL.txt")
+    license_path = fetch("OFL.txt")
 
     font = TTFont(src)
     options = subset.Options()
@@ -112,7 +112,7 @@ def main():
 
     fonts_dir = os.path.join(APP, "fonts")
     os.makedirs(fonts_dir, exist_ok=True)
-    with open(licence, "r", encoding="utf-8") as f:
+    with open(license_path, "r", encoding="utf-8") as f:
         text = f.read()
     with open(os.path.join(fonts_dir, "OFL-PinyonScript.txt"), "w", encoding="utf-8") as f:
         f.write(text)

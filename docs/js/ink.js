@@ -57,7 +57,7 @@
   var TAPER_NIB = 1.6;        // ramp length, in nib widths
   var TAPER_TIP = 0.34;       // width at the very tip, as a fraction of the nib
   var TAPER_MAX = 0.28;       // ...but never more than this much of the stroke
-  var CORE_ALPHA = 0.3;       // a wetter, darker centre to the line
+  var CORE_ALPHA = 0.3;       // a wetter, darker center to the line
   var CORE_FRAC = 0.45;
 
   function widthAt(s, len, ramp, w) {
@@ -156,7 +156,7 @@
       }
       taperedStroke(ctx, v, w);
       // A darker, narrower core down the middle, so the line reads as ink
-      // soaking into paper rather than as a flat band of colour.
+      // soaking into paper rather than as a flat band of color.
       if (opts.core) {
         var alpha = ctx.globalAlpha;
         ctx.strokeStyle = opts.core;
@@ -231,7 +231,7 @@
     return mask;
   }
 
-  /* Centre of the inked pixels. Both sides of a comparison must be measured
+  /* Center of the inked pixels. Both sides of a comparison must be measured
    * this same way: the centroid of a target's stored contour points is a
    * different quantity, weighted by however densely that file happened to be
    * traced, and using one against the other pulls a correctly placed attempt

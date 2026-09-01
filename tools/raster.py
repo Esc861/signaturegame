@@ -116,7 +116,7 @@ def shapes_to_contours(shapes):
 def _distance_inside(cov, W, H):
     """Chamfer distance from each ink pixel to the nearest background pixel.
 
-    Two passes, 3-4 neighbourhood. The ~2% error against true Euclidean is
+    Two passes, 3-4 neighborhood. The ~2% error against true Euclidean is
     irrelevant here - the result feeds a ratio, not a measurement.
     """
     INF = 1e9

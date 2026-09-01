@@ -20,7 +20,7 @@
  * Economy measures pen *travel*, not inked area. Area was tried first and was
  * wrong: a wavering hand covers more area without drawing any further, so it
  * punished shaky tracing, which precision already accounts for. Distance
- * travelled is invariant to that wobble and is exactly what a scribble spends
+ * traveled is invariant to that wobble and is exactly what a scribble spends
  * without limit.
  *
  * Working in pixels rather than along paths also means stroke order, stroke
@@ -90,7 +90,7 @@
   // betray themselves with tremor, hesitation and patching. This measures how
   // much a stroke shortens when smoothed - a fluent curve barely moves, a shaky
   // one collapses - and it is scored hard, because it is the thing that
-  // separates a practised hand from a careful copy.
+  // separates a practiced hand from a careful copy.
   // Sampled at a fine, fixed spatial scale rather than a multiple of the pen.
   // Tremor is a high-frequency wobble; genuine curvature is low-frequency. Step
   // coarsely and smoothing eats the curvature too, which read van Gogh's broad
@@ -225,9 +225,9 @@
     // signature is built, not where on the page it landed, so the attempt may
     // be nudged onto the target, up to a capped distance.
     //
-    // Both centres come from the rendered ink - the target's stored contour
+    // Both centers come from the rendered ink - the target's stored contour
     // points are a different quantity and dragged attempts off the mark. Even
-    // then the nudge is only kept if it scores better: a traced centreline's
+    // then the nudge is only kept if it scores better: a traced centerline's
     // ink does not sit exactly where the filled target's does, so centring
     // blindly made a *correct* attempt worse, which is the opposite of
     // forgiving an offset. Alignment can only ever help.
@@ -266,9 +266,9 @@
 
     // How far did the pen travel to get there? A scribble covers a signature
     // handsomely, but only by drawing several times its length.
-    var travelled = 0;
-    for (i = 0; i < strokes.length; i++) travelled += geom.strokeLength(strokes[i]);
-    var ratio = travelled / (targetTravel(level) || 1);
+    var traveled = 0;
+    for (i = 0; i < strokes.length; i++) traveled += geom.strokeLength(strokes[i]);
+    var ratio = traveled / (targetTravel(level) || 1);
     var over = Math.max(0, ratio / TRAVEL_GRACE - 1);
     var economy = 1 / (1 + TRAVEL_BITE * over * over);
 
@@ -339,7 +339,7 @@
   }
 
   /* Calibration hook. The constants above are only defensible against measured
-   * behaviour, so dev/grade-test.html needs to sweep them without editing this
+   * behavior, so dev/grade-test.html needs to sweep them without editing this
    * file between runs. Not used by the game itself. */
   function tune(o) {
     if (o.tol != null) TOL_FRAC = o.tol;
