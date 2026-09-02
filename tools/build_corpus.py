@@ -311,15 +311,22 @@ def pass_mark(difficulty):
 
     It used to sit at 66-76, close against the cheats, which turned out to play
     too easy: a first attempt cleared most levels and the game had nothing to
-    ask for. Four points higher costs the cheats nothing - the floor is still
-    five clear of the best of them, and further away than it was - and asks a
-    careful hand to actually be careful.
+    ask for. Four points higher asked a careful hand to actually be careful.
+
+    The floor then rose again, 70 to 74, and that one was defensive. Putting
+    more weight on sharp corners reshuffled the difficulty ranking, and the
+    best cheat in the sweep climbed from 64% to 71% - Bouguereau traced as a
+    six-lobed zigzag - while 37 levels sat at a floor of 70. No cheat actually
+    cleared the level it was drawn on, but the cushion was gone, and a rebuild
+    that dropped a Bouguereau-shaped hand into that band would have handed a
+    scribble a pass. Only the floor moves: the easing above it is untouched,
+    so the change is confined to the levels that were below 74.
 
     Still eased against difficulty, so a dense, tangled hand is not a wall - but
     over a much narrower range than the spread of the scores themselves, which
     turns out not to track difficulty closely.
     """
-    return int(round(max(70.0, min(80.0, 80.0 - 0.12 * difficulty))))
+    return int(round(max(74.0, min(80.0, 80.0 - 0.12 * difficulty))))
 
 
 # --------------------------------------------------------------------------

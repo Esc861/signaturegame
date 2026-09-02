@@ -208,25 +208,26 @@ five honest attempts and ten cheats and reports the two numbers that matter —
 `SG.grade.tune({...})` from the console changes the constants live, so a
 parameter search does not mean editing files between runs.
 
-As it stands, across the full 252: **2520 cheat attempts, none of them pass.**
+As it stands, across the full 252: **2520 cheat attempts, none of them pass**,
+the best reaching 71% against a floor of 74%.
 
-The margin, though, is much thinner than it was, and that is worth stating
-plainly because the difficulty reweight caused it. The best cheat anywhere used
-to be 64% against a 70% floor. It is now **71%** — Bouguereau traced as a
-six-lobed zigzag — on a level that happens to need 78%. No cheat clears the
-level it was drawn on, which is the invariant that matters and the one the sweep
-checks. But the global cushion has gone from six points to less than none, and
-37 of the 252 levels now sit at the 70–71 floor. If a future rebuild drops a
-Bouguereau-shaped signature into that band, a scribble would clear it. Raising
-the floor is the fix if it ever does.
+That floor moved for a reason worth recording. Putting more weight on sharp
+corners reshuffled the difficulty ranking, and the best cheat anywhere climbed
+from 64% to 71% — Bouguereau traced as a six-lobed zigzag — while 37 levels sat
+at the old floor of 70. No cheat ever cleared the level it was drawn on, which
+is the invariant the sweep checks, but the cushion was gone: a rebuild that
+dropped a Bouguereau-shaped hand into that band would have handed a scribble a
+pass. Raising the floor to 74 restores three points of it. Only the floor moved
+— the easing above it is untouched, so 106 levels rose by one to four points and
+the rest did not move at all.
 
-Above the floor the picture is a judgement rather than a correctness result. 57
-of the 252 honest attempts fail. 50 of those are the deliberately shaky attempt,
-wandering about two pen widths off the line, which is the population the bar was
-raised to catch. The rest: a steady attempt fails on three levels, a doubled-back
-one on two, edge-tracing on Einstein, and a *clean* trace on exactly one — José
-Ortega y Gasset, two points short of his own pass mark. `pass_mark` is the single
-line to change if any of that feels wrong on a real phone.
+Above the floor the picture is a judgement rather than a correctness result. 59
+of the 252 honest attempts fail. 51 of those are the deliberately shaky attempt,
+wandering about two pen widths off the line, which is the population the bar
+exists to catch. The rest: a steady attempt fails on three levels, a doubled-back
+one on two, edge-tracing on two, and a *clean* trace on exactly one — José Ortega
+y Gasset, two points short of his own pass mark. `pass_mark` is the single line
+to change if any of that feels wrong on a real phone.
 
 The sweep is also what catches a broken *signature*, as opposed to a broken
 score. See the note on Max Weber under Curation.
