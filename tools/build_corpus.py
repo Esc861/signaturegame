@@ -41,7 +41,7 @@ APP = os.path.join(ROOT, "docs")
 
 BOX = 1000.0          # normalized long side
 RDP_EPS = 1.1         # simplification tolerance, in BOX units
-PER_THEME = 36        # levels per track
+PER_THEME = 28        # levels per track
 TRY_PER_THEME = 460   # candidates to attempt, to survive conversion failures
 
 # Minimum width-to-height ratio. Wide-only is a fairness rule, not taste.
@@ -228,14 +228,29 @@ def years(person):
 # Curie's hairline punishes a millimetre. Judging on shape alone put fat, showy
 # signatures above fine, plain ones that are markedly harder to trace.
 WEIGHTS = {
-    "fineness":  0.30,   # how narrow the pen is, relative to the signature
     "ink_ratio": 0.24,   # pen travel packed into the space
+    "corners":   0.20,   # abrupt direction changes - where the hand must stop
     "fragments": 0.16,   # small disconnected marks to re-site the hand for
+    "fineness":  0.15,   # how narrow the pen is, relative to the signature
     "curl":      0.10,   # how tightly the line turns as it travels
     "contours":  0.10,   # pen lifts and counters
     "turning":   0.05,   # curliness
-    "corners":   0.05,   # abrupt direction changes
 }
+
+# Corners and fineness traded fifteen points, from 0.05/0.30 to 0.20/0.15.
+#
+# Both directions came out of playing it. A sharp reversal is where tracing
+# actually goes wrong: the hand has to stop dead, change direction and set off
+# again, and it is the stopping that costs accuracy - the line overshoots, or
+# rounds off the corner, or wobbles on the restart. A signature made of them is
+# hard in a way a long smooth curve of the same length is not, and at 0.05 that
+# barely registered.
+#
+# Fineness pulls the other way. A hairline is genuinely less forgiving than a
+# broad nib, but it is not really a property of the handwriting - it is a
+# property of the pen, and at 0.30 it was the single loudest term in the score,
+# which meant difficulty tracked what someone was writing with more closely than
+# how they wrote. Still worth something; no longer worth the most.
 
 # Aspect ratio used to carry weight here, and no longer does.
 #

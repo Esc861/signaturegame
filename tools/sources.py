@@ -295,17 +295,25 @@ THEMES = [
                   "Q3282637"],   # film producer
     },
     {
+        "id": "music",
+        "name": "Composers & Musicians",
+        "blurb": "Composers, conductors and the odd rock star.",
+        # Split from the painters, who kept the "arts" id. Singers stay with
+        # Stage & Screen: a singer is a performer first, and moving them here
+        # would empty half of that track into this one.
+        "roots": ["Q36834",      # composer
+                  "Q639669"],    # musician
+    },
+    {
         "id": "arts",
-        "name": "Artists & Composers",
+        "name": "Painters & Sculptors",
         "blurb": "Signatures that were part of the work.",
         # Deliberately not rooted at "artist" (Q483501): its subclass tree
         # reaches writers and performers and would swallow two other themes.
         "roots": ["Q1028181",    # painter
-                  "Q36834",      # composer
                   "Q1281618",    # sculptor
                   "Q42973",      # architect
-                  "Q33231",      # photographer
-                  "Q639669"],    # musician
+                  "Q33231"],     # photographer
     },
     {
         "id": "thought",
@@ -359,6 +367,16 @@ THEMES = [
         "id": "statesmen",
         "name": "Statesmen & Revolutionaries",
         "blurb": "Presidents and generals, and the people who pushed back.",
+        # The campaigners were tried as a track of their own and it did not
+        # work. Splitting them off left a collection defined by opposition
+        # rather than by achievement, which turns out to be a category that
+        # sweeps in whoever opposed anything: it filed the Unabomber between
+        # Rosa Parks and John Brown, and the founder of the Cheka alongside
+        # Martin Luther King Jr. It also kept claiming heads of state on the
+        # strength of how they came to power - Carter, Nehru, Tito, Ben-Gurion
+        # - so the track needed constant hand-correction in both directions.
+        # Reformers sit here with the presidents and the generals they spent
+        # their lives arguing with, which is where they were to begin with.
         "roots": ["Q82955",      # politician
                   "Q189290",     # military officer
                   "Q193391",     # diplomat
@@ -431,6 +449,23 @@ OCCUPATION_PINS = {
     "Q222344":   "stage",      # cinematographer
     "Q7042855":  "stage",      # film editor
     "Q1208175":  "stage",      # camera operator
+
+    # Clergy. Priest is a Statesmen & Soldiers root, but Wikidata's more
+    # specific clerical items hang off "activist" instead, which had three
+    # popes filed as Rebels & Reformers.
+    "Q1469535":   "statesmen",  # Latin Catholic priest
+    "Q250867":    "statesmen",  # Catholic priest
+    "Q102039658": "statesmen",  # Latin Catholic bishop
+    "Q611644":    "statesmen",  # Catholic bishop
+    "Q29182":     "statesmen",  # bishop
+    "Q49476":     "statesmen",  # archbishop
+    "Q105169902": "statesmen",  # Latin Catholic deacon
+    "Q7834465":   "statesmen",  # transitional deacon
+    "Q955464":    "statesmen",  # parson
+    # ...and the mirror image: these two hang off the philosophers, which had
+    # Martin Luther King Jr. filed as a historian.
+    "Q16003550":  "statesmen",  # pacifist
+    "Q16323111":  "statesmen",  # peace activist
 }
 
 _SUBCLASS_QUERY = """
@@ -529,14 +564,24 @@ THEME_OVERRIDES = {
     # Monarchs who wrote music. Both genuinely composed; both read as errors
     # sitting in a track of painters.
     "Henry VIII":                 "crown",
-    "Bhumibol Adulyadej":         "crown",
-    "Galyani Vadhana":            "crown",     # a Thai princess with a pilot's license
 
     # Second pass, after the occupation pins above fixed the classes of error
     # and left the individuals. Every one of these is a true fact about the
     # person that reads as a broken classifier on a card.
     "Andy Warhol":                "arts",      # films outscored the paintings
     "Samuel Beckett":             "letters",   # likewise, his films
+    # Turned up once the statesmen split in two, and all three read as the
+    # classifier being broken rather than as facts about the person.
+    "Martin Luther King Jr.":     "statesmen", # filed under the historians
+    "Mikhail Gorbachev":          "statesmen", # a film-actor credit, like Reagan
+    "Gustaf VI Adolf":            "crown",     # a king, and a real archaeologist
+
+    # Two more monarchs whose hobbies outscored their thrones, and who were
+    # sitting in a track of painters.
+    "Christina, Queen of Sweden": "crown",     # a collector and patron
+    "Leopold III of Belgium":     "crown",     # a photographer
+    "Huldrych Zwingli":           "thought",   # a reformer who played six instruments
+
     "Samuel Morse":               "science",   # a celebrated portrait painter first
     "William Herschel":           "science",   # a working composer before an astronomer
     "Arthur Schopenhauer":        "thought",   # filed as a scientist, of all things
@@ -683,6 +728,36 @@ EXCLUDE_NAMES = {
     # A murdered child, whose hand is famous for the worst reason there is.
     # Nothing to do with her; this game is not the place.
     "Anne Frank",
+
+    # The kings of the Chakri dynasty, and the one princess who reaches the
+    # candidate pool. Thailand's lese-majeste law is among the strictest
+    # anywhere - three to fifteen years a count, and applied to a Facebook
+    # like - and while its reach to dead kings is legally contested, Bhumibol
+    # is the reigning king's father and prosecutions touching him have
+    # continued since 2016. The law is the smaller half of it. His image is
+    # revered to the point that standing on a banknote is an insult, and this
+    # game does something a photograph does not: it prints a faded copy of the
+    # signature, asks you to draw over it, and scores you out of a hundred. A
+    # royal signature is a formal, protected thing in Thailand, nearer a seal
+    # than a name, and imitating one is nearer counterfeiting than portraiture.
+    #
+    # Mongkut died in 1868 and is the mildest case, but The King and I is
+    # banned in Thailand for its portrayal of him, so the whole dynasty is the
+    # line that is actually possible to state.
+    "Bhumibol Adulyadej", "Ananda Mahidol", "Mongkut", "Galyani Vadhana",
+
+    # Surfaced by the ten-track split, which put the first two in company that
+    # made the problem obvious: Eva Braun arrived as a photographer and was
+    # sitting among the painters, and the Unabomber was filed under Rebels &
+    # Reformers between Rosa Parks and John Brown. Dzerzhinsky founded the
+    # Cheka and ran the Red Terror, and was in the same track as King and
+    # Anthony. Same standard as the group above, applied to three regimes.
+    "Eva Braun", "Ted Kaczynski", "Felix Dzerzhinsky",
+
+    # Not a cultural taboo but a live political one: the Turkish state
+    # designates his movement a terrorist organisation and blames him for the
+    # 2016 coup attempt, so including him reads as taking a side.
+    "Fethullah Gülen",
 
     # Not a signature the way the rest are: a dense document rubric, several
     # lines of compact writing plus a flourish. (It is also nowhere near wide

@@ -1,10 +1,10 @@
 # Historic Ink
 
 A touch-first web game: trace the signatures of history over a faded guide, get
-scored on accuracy, and unlock progressively harder hands across eight
+scored on accuracy, and unlock progressively harder hands across nine
 collections.
 
-288 signatures — eight tracks of thirty-six — sourced from Wikidata and Wikimedia
+252 signatures — nine tracks of twenty-eight — sourced from Wikidata and Wikimedia
 Commons.
 
 ## Playing it
@@ -208,21 +208,25 @@ five honest attempts and ten cheats and reports the two numbers that matter —
 `SG.grade.tune({...})` from the console changes the constants live, so a
 parameter search does not mean editing files between runs.
 
-As it stands, across the full 288: **2880 cheat attempts, none of them pass**,
-the best reaching 64% against a 70% floor. Tripling the corpus did not move that
-number at all — the worst cheat in the game is still Rembrandt traced as a
-six-lobed zigzag, exactly as it was at 96 levels.
+As it stands, across the full 252: **2520 cheat attempts, none of them pass.**
 
-Above the floor the picture is a judgement rather than a correctness result, and
-worth stating exactly. 65 of the 288 honest attempts fail, which is 23% against
-22% at the old size, so the calibration held as the corpus grew. 57 of those 65
-are the deliberately shaky attempt, wandering about two pen widths off the line,
-which is the population the bar was raised to catch. The rest: a steady attempt
-fails on three levels, a doubled-back one on three, edge-tracing on Einstein,
-and a *clean* trace on exactly one — José Ortega y Gasset, two points short of
-his own pass mark. One level in 288 where a perfect synthetic trace cannot clear
-the bar is the honest cost of a difficulty-derived threshold; `pass_mark` is the
-single line to change if it feels wrong on a real phone.
+The margin, though, is much thinner than it was, and that is worth stating
+plainly because the difficulty reweight caused it. The best cheat anywhere used
+to be 64% against a 70% floor. It is now **71%** — Bouguereau traced as a
+six-lobed zigzag — on a level that happens to need 78%. No cheat clears the
+level it was drawn on, which is the invariant that matters and the one the sweep
+checks. But the global cushion has gone from six points to less than none, and
+37 of the 252 levels now sit at the 70–71 floor. If a future rebuild drops a
+Bouguereau-shaped signature into that band, a scribble would clear it. Raising
+the floor is the fix if it ever does.
+
+Above the floor the picture is a judgement rather than a correctness result. 57
+of the 252 honest attempts fail. 50 of those are the deliberately shaky attempt,
+wandering about two pen widths off the line, which is the population the bar was
+raised to catch. The rest: a steady attempt fails on three levels, a doubled-back
+one on two, edge-tracing on Einstein, and a *clean* trace on exactly one — José
+Ortega y Gasset, two points short of his own pass mark. `pass_mark` is the single
+line to change if any of that feels wrong on a real phone.
 
 The sweep is also what catches a broken *signature*, as opposed to a broken
 score. See the note on Max Weber under Curation.
@@ -255,18 +259,37 @@ and combined.
 
 | weight | metric | what it catches |
 |---|---|---|
-| 0.30 | fineness | how narrow the nib is **relative to the signature's own size** |
 | 0.24 | ink ratio | sheer length of line |
+| 0.20 | corners | abrupt direction changes |
 | 0.16 | fragments | small disconnected marks, each needing the hand re-sited |
+| 0.15 | fineness | how narrow the nib is **relative to the signature's own size** |
 | 0.10 | curl | how tightly the line turns as it travels: fiddly vs sweeping |
 | 0.10 | contours | pen lifts and counters |
 | 0.05 | turning | overall curliness |
-| 0.05 | corners | abrupt direction changes |
 
-Fineness dominates because it is the strongest single predictor: van Gogh's broad
-blunt hand forgives a wobble no matter how it loops, while Curie's hairline
-punishes a millimetre. Inverse pen width alone very nearly reproduces the whole
-ordering.
+Corners and fineness traded fifteen points, from 0.05/0.30 to 0.20/0.15, and both
+directions came out of playing it.
+
+A sharp reversal is where tracing actually goes wrong. The hand has to stop dead,
+change direction and set off again, and it is the stopping that costs accuracy —
+the line overshoots, or rounds the corner off, or wobbles on the restart. A
+signature made of them is hard in a way that a long smooth curve of the same
+length is not, and at 0.05 that barely registered.
+
+Fineness pulls the other way. A hairline really is less forgiving than a broad
+nib — Curie's hand punishes a millimetre where van Gogh's forgives a wobble —
+but it is a property of the *pen*, not of the handwriting. At 0.30 it was the
+loudest term in the score, which meant difficulty tracked what someone wrote
+with more closely than how they wrote. Still worth something; no longer worth
+the most.
+
+One thing the change did **not** do: it did not bias the score between the two
+kinds of source art. Contour art has a genuine ~180° turn at every stroke end,
+so raising the corner weight might have made outline files systematically
+harder. Measured before and after, the gap moved the other way — centreline
+files mean 18.8 before and 21.2 after against outline's 51.0 and 51.2 — so the
+gap is a pre-existing property of the nine centreline files in the corpus, not
+something the reweight introduced.
 
 Fragments are counted at high resolution on purpose. At the resolution used
 elsewhere a hairline breaks into hundreds of "pieces" that are raster gaps rather
@@ -327,7 +350,7 @@ each signature's complexity, and keeps the most famous per theme ordered by
 difficulty. Fame picks the names; difficulty sets the ramp. Each level also
 carries a link to the subject's English Wikipedia article.
 
-### Why eight tracks of thirty-six, and not six of forty-eight
+### Why nine tracks of twenty-eight
 
 Because of the explorers, and the number is measured rather than chosen. Counted
 end to end — every fame level, no floor at all — Wikidata holds about 108
@@ -338,10 +361,28 @@ reachable at any fame floor, and there is no occupation to add: ranking every
 unindexed occupation in the pool by headcount turns up nothing frontier-adjacent
 above single figures.
 
-So the corpus grew sideways as well as down. Two new tracks were split off the
-two largest pools — Philosophers & Historians out of what is now Writers &
-Poets, Monarchs & Nobility out of what is now Statesmen & Revolutionaries — and
-every one of the eight has at least 100 candidates against a 36 requirement.
+So the corpus grows sideways as well as down. Four tracks have been split off
+larger pools: Philosophers & Historians out of what is now Writers & Poets,
+Monarchs & Nobility out of Statesmen & Revolutionaries, and Composers &
+Musicians out of what is now Painters & Sculptors. Every one of the nine has at
+least 96 candidates against a 28 requirement.
+
+A tenth was tried and cut. **Rebels & Reformers** — revolutionary and activist,
+split off the statesmen — turned out to be a category defined by opposition
+rather than by achievement, and that sweeps in whoever opposed anything: it
+filed the Unabomber between Rosa Parks and John Brown, and the founder of the
+Cheka alongside Martin Luther King Jr. It also kept claiming heads of state on
+the strength of how they came to power, so Carter, Nehru, Tito and Ben-Gurion
+all needed pulling back out by hand. The campaigners sit with the presidents and
+generals they spent their lives arguing with, which is where they started.
+
+Two other candidate tracks were measured and rejected on the numbers rather than
+on taste. **Sport** draws only 134 candidates, and its top of pool is Camus,
+Henry Ford and Niels Bohr — all of whom played something — so the track would
+have been mostly other people's day jobs. **Business** and **law/journalism**
+both return over a thousand candidates whose top of pool is Einstein, Leonardo
+and Lincoln, because those trees claim anyone who ever founded a company or
+trained as a lawyer.
 
 The fame floor of 5 is set by the same track and by nothing else. Only the
 tracks that need the tail ever reach it: candidates are taken in descending fame
@@ -356,7 +397,8 @@ game came to show "Rosa Luxemburgo". Where an English label does exist it is
 sometimes still not the name a reader expects: "Benedictus de Spinoza",
 "Elizabeth I of England". So the display name is the title of the English
 Wikipedia article, minus any parenthetical disambiguator, which every person in
-the pool has. It fixed 21 names out of 288 and made none of them worse.
+the pool has. It fixed 21 names out of the 288 then in the corpus, and made
+none of them worse.
 
 Everything network-touching is cached under `tools/.cache`, so re-runs are fast
 and offline. Difficulty, vectorization and pen widths are all precomputed here —
@@ -393,7 +435,8 @@ nothing.
 `OCCUPATION_PINS` is the newer and more useful lever, because it fixes classes
 of mistake rather than individuals. A few occupations sit in two subclass trees
 at once and the tree that claims them first is not the one a player would pick.
-Three cases accounted for nearly all the misfiling at 288 levels: "autobiographer"
+Three cases accounted for nearly all the misfiling once the corpus passed two
+hundred levels: "autobiographer"
 and "biographer" hang off *historian*, so anyone who wrote a memoir — Patton,
 P. T. Barnum, Kissinger, Lewis Carroll — was filed with the philosophers; the
 social sciences hang off *scientist*, which put Keynes and Adam Smith in among
@@ -431,7 +474,8 @@ black blobs — a third of his ink was paths a browser would not have drawn — 
 every automated check passed him, because as far as those were concerned the
 blobs were ink.
 
-Auditing all 288 files afterwards found exactly two affected, Amundsen badly and
+Auditing every file in the corpus afterwards found exactly two affected,
+Amundsen badly and
 Joseph P. Kennedy Jr. by 0.2% of his ink, so the bug was rare and severe rather
 than widespread. The same pass checked the other ways a file can defeat the
 parser: one uses a CSS `<style>` block for its fill (harmless — it *sets* a
@@ -440,6 +484,28 @@ original scan as an `<image>` beside the trace (harmless — `<image>` yields no
 geometry), and one carries a 2.6% minority of stroked shapes in an otherwise
 filled file. After the fix the fattest blob anywhere is 67% of the limit the
 build allows.
+
+Three groups of exclusion have been added since, all editorial and all one line
+to reverse. The **kings of the Chakri dynasty** — Bhumibol Adulyadej, Ananda
+Mahidol and Mongkut, plus Galyani Vadhana, who is in the pool but never made a
+cut — come out on cultural grounds. Thailand's lèse-majesté law is among the
+strictest anywhere, three to fifteen years a count and applied to a Facebook
+like, and while its reach to dead kings is legally contested, Bhumibol is the
+reigning king's father. The law is the smaller half of it: his image is revered
+to the point that standing on a banknote is an insult, and this game does
+something a photograph does not — it prints a faded copy of the signature, asks
+you to draw over it, and scores you out of a hundred. A royal signature in
+Thailand is nearer a seal than a name.
+
+**Fethullah Gülen** comes out as a live political flashpoint rather than a
+cultural one: the Turkish state designates his movement a terrorist organisation
+and blames him for the 2016 coup attempt.
+
+And **Eva Braun, Ted Kaczynski and Felix Dzerzhinsky** come out under the
+standing grim-company rule. All three were surfaced by the ten-track experiment,
+which put the problem in plain sight: Braun arrived as a photographer and was
+sitting among the painters, and the other two were filed under Rebels &
+Reformers alongside Rosa Parks and Martin Luther King Jr.
 
 `EXCLUDE_NAMES` drops people entirely: a group of Nazi figures, who would be grim
 company in a lighthearted game whatever their historical weight, and athletes who
