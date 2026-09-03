@@ -209,7 +209,7 @@ five honest attempts and ten cheats and reports the two numbers that matter —
 parameter search does not mean editing files between runs.
 
 As it stands, across the full 252: **2520 cheat attempts, none of them pass**,
-the best reaching 71% against a floor of 74%.
+the best reaching 71% against a floor of 76%.
 
 That floor moved for a reason worth recording. Putting more weight on sharp
 corners reshuffled the difficulty ranking, and the best cheat anywhere climbed
@@ -217,17 +217,23 @@ from 64% to 71% — Bouguereau traced as a six-lobed zigzag — while 37 levels 
 at the old floor of 70. No cheat ever cleared the level it was drawn on, which
 is the invariant the sweep checks, but the cushion was gone: a rebuild that
 dropped a Bouguereau-shaped hand into that band would have handed a scribble a
-pass. Raising the floor to 74 restores three points of it. Only the floor moved
-— the easing above it is untouched, so 106 levels rose by one to four points and
-the rest did not move at all.
+pass. Raising the floor to 74 restored three points of it, and only the floor
+moved — the easing above it was untouched, so 106 levels rose by one to four
+points and the rest did not move at all.
 
-Above the floor the picture is a judgement rather than a correctness result. 59
-of the 252 honest attempts fail. 51 of those are the deliberately shaky attempt,
-wandering about two pen widths off the line, which is the population the bar
-exists to catch. The rest: a steady attempt fails on three levels, a doubled-back
-one on two, edge-tracing on two, and a *clean* trace on exactly one — José Ortega
-y Gasset, two points short of his own pass mark. `pass_mark` is the single line
-to change if any of that feels wrong on a real phone.
+The whole band then moved up two more, to **76–82**. That one is not a
+correction; it is simply asking for more, and every level costs two points more
+than it did. The cushion under the best cheat widens to five points as a side
+effect.
+
+Above the floor the picture is a judgement rather than a correctness result, and
+the two-point rise is what it costs: 85 of the 252 honest attempts now fail,
+against 59 before. 70 of those are the deliberately shaky attempt, wandering
+about two pen widths off the line, which is the population the bar exists to
+catch. The number that actually matters is the steady one — a careful hand
+wobbling about a pen width — and that goes from three levels to **seven**. A
+clean trace still fails on exactly one, José Ortega y Gasset. `pass_mark` is the
+single line to change if that feels wrong under a real finger.
 
 The sweep is also what catches a broken *signature*, as opposed to a broken
 score. See the note on Max Weber under Curation.

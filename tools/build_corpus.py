@@ -319,14 +319,19 @@ def pass_mark(difficulty):
     six-lobed zigzag - while 37 levels sat at a floor of 70. No cheat actually
     cleared the level it was drawn on, but the cushion was gone, and a rebuild
     that dropped a Bouguereau-shaped hand into that band would have handed a
-    scribble a pass. Only the floor moves: the easing above it is untouched,
-    so the change is confined to the levels that were below 74.
+    scribble a pass. Only the floor moved there: the easing above it was
+    untouched, so that change was confined to the levels below 74.
+
+    Then the whole band moved up two points, 74-80 to 76-82. The first two
+    moves were corrections; this one is simply asking for more. Every level
+    costs two points more than it did, and the cushion under the best cheat
+    anywhere - still 71% - widens to five.
 
     Still eased against difficulty, so a dense, tangled hand is not a wall - but
     over a much narrower range than the spread of the scores themselves, which
     turns out not to track difficulty closely.
     """
-    return int(round(max(74.0, min(80.0, 80.0 - 0.12 * difficulty))))
+    return int(round(max(76.0, min(82.0, 82.0 - 0.12 * difficulty))))
 
 
 # --------------------------------------------------------------------------

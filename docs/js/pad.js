@@ -45,9 +45,10 @@
   var LOUPE = 0.34;         // diameter, as a fraction of the pad's short edge
   var LOUPE_MAX = 124;      // ...but never bigger than this, in CSS px
   // Enough to separate the line from the fingertip covering it, and no more.
-  // At 2.6 the glass showed so little of the signature that it was easy to
-  // lose track of where on the letter you were.
-  var LOUPE_ZOOM = 2.1;
+  // At 2.6 the glass held so little of the signature that it was easy to lose
+  // track of where on the letter you were; 1.8 keeps enough of the surrounding
+  // stroke in view to stay oriented, which is most of what the glass is for.
+  var LOUPE_ZOOM = 1.8;
   var LOUPE_GAP = 22;       // clear air between fingertip and glass
   var LOUPE_EDGE = 8;       // keep it this far inside the viewport
 
