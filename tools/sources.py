@@ -312,7 +312,6 @@ THEMES = [
         # reaches writers and performers and would swallow two other themes.
         "roots": ["Q1028181",    # painter
                   "Q1281618",    # sculptor
-                  "Q42973",      # architect
                   "Q33231"],     # photographer
     },
     {
@@ -346,8 +345,7 @@ THEMES = [
                   "Q205375",     # inventor
                   "Q170790",     # mathematician
                   "Q39631",      # physician
-                  "Q82594",      # computer scientist
-                  "Q81096"],     # engineer
+                  "Q82594"],     # computer scientist
     },
     {
         "id": "crown",
@@ -383,6 +381,26 @@ THEMES = [
                   "Q3242115",    # revolutionary
                   "Q15253558",   # activist
                   "Q42603"],     # priest
+    },
+    {
+        "id": "builders",
+        "name": "Architects & Engineers",
+        "blurb": "The signature went on the drawing, not the building.",
+        # Last, and the position is the whole design. Architecture and design
+        # attach to a great many people who are not architects - Michelangelo,
+        # Munch, Manet, Klee, Mondrian and Turner all carry one - and so does
+        # engineering, to every politician with a technical degree. Placed
+        # last, every tie falls to the other track, and all three tie cases
+        # resolve correctly: painter beats architect, politician beats
+        # engineer, scientist beats engineer. A genuine architect has no tie
+        # to lose, so the track fills with the people it should.
+        #
+        # Not "draftsperson", which was tried: Wikidata means it in the artist
+        # sense, and it brought Dali, Munch and Manet with a wave of
+        # cartoonists behind them - Herge, Schulz, Tezuka, Toriyama, Peyo.
+        "roots": ["Q42973",      # architect
+                  "Q81096",      # engineer
+                  "Q5322166"],   # designer
     },
 ]
 
@@ -576,6 +594,19 @@ THEME_OVERRIDES = {
     "Mikhail Gorbachev":          "statesmen", # a film-actor credit, like Reagan
     "Gustaf VI Adolf":            "crown",     # a king, and a real archaeologist
 
+    # Two artists that the architects' track claimed on a design credit. The
+    # politicians it also claims are left alone on purpose: Sagasta, Febres
+    # Cordero and C. D. Howe were career engineers before they were ministers,
+    # and an engineers' track is where they belong.
+    "Piet Mondrian":              "arts",
+    "Hergé":                      "arts",
+    "Yannis Tsarouchis":          "arts",      # a painter, on a design credit
+    # And the reverse: three people the painters picked up on a photography or
+    # drawing credit, two of them wearing a crown at the time.
+    "Alexandra of Denmark":       "crown",
+    "Carlos I of Portugal":       "crown",
+    "Ryszard Kapuściński":        "letters",   # a reporter who took photographs
+
     # Two more monarchs whose hobbies outscored their thrones, and who were
     # sitting in a track of painters.
     "Christina, Queen of Sweden": "crown",     # a collector and patron
@@ -705,6 +736,16 @@ BLACKLIST = {
     # Nothing in the pipeline drops them; all 20 subpaths survive to the corpus
     # exactly as the file draws them. The source is just poor.
     "Claude Monet Signature.svg",
+    # A third way to be unusable, and the subtlest. Nothing is wrong with the
+    # artwork: 317 points, below the corpus median, and it draws as a perfectly
+    # good hand. But the long underline beneath the name is a stroke that spends
+    # its whole length away from the lettering, which is what the stray-stroke
+    # charge exists to catch, and it fires on the real signature. The sweep had
+    # every honest attempt failing by twelve points or more - clean 64, steady
+    # 54, doubled-back 46, edges 61, against a pass mark of 76 - on components
+    # that all look healthy in isolation (precision 92, coverage 99, fluency
+    # 81). Unclearable in practice, so it goes.
+    "André Citroën signature.svg",
 }
 
 # Dropped from the corpus entirely. The first group would be grim company in a
@@ -753,6 +794,13 @@ EXCLUDE_NAMES = {
     # Cheka and ran the Red Terror, and was in the same track as King and
     # Anthony. Same standard as the group above, applied to three regimes.
     "Eva Braun", "Ted Kaczynski", "Felix Dzerzhinsky",
+    # Surfaced by the architects' track, which is a reminder that a technical
+    # profession is no guide to a life. Globocnik was an architect and ran
+    # Operation Reinhard; Popper was an engineer who hunted the Selk'nam of
+    # Tierra del Fuego for sport.
+    "Odilo Globocnik", "Julius Popper",
+    # A Chakri prince, and an architect. Same call as his father Mongkut.
+    "Narisara Nuwattiwong",
 
     # Not a cultural taboo but a live political one: the Turkish state
     # designates his movement a terrorist organisation and blames him for the

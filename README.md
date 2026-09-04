@@ -1,10 +1,10 @@
 # Historic Ink
 
 A touch-first web game: trace the signatures of history over a faded guide, get
-scored on accuracy, and unlock progressively harder hands across nine
+scored on accuracy, and unlock progressively harder hands across ten
 collections.
 
-252 signatures — nine tracks of twenty-eight — sourced from Wikidata and Wikimedia
+280 signatures — ten tracks of twenty-eight — sourced from Wikidata and Wikimedia
 Commons.
 
 ## Playing it
@@ -208,7 +208,7 @@ five honest attempts and ten cheats and reports the two numbers that matter —
 `SG.grade.tune({...})` from the console changes the constants live, so a
 parameter search does not mean editing files between runs.
 
-As it stands, across the full 252: **2520 cheat attempts, none of them pass**,
+As it stands, across the full 280: **2800 cheat attempts, none of them pass**,
 the best reaching 71% against a floor of 76%.
 
 That floor moved for a reason worth recording. Putting more weight on sharp
@@ -227,13 +227,28 @@ than it did. The cushion under the best cheat widens to five points as a side
 effect.
 
 Above the floor the picture is a judgement rather than a correctness result, and
-the two-point rise is what it costs: 85 of the 252 honest attempts now fail,
-against 59 before. 70 of those are the deliberately shaky attempt, wandering
-about two pen widths off the line, which is the population the bar exists to
-catch. The number that actually matters is the steady one — a careful hand
-wobbling about a pen width — and that goes from three levels to **seven**. A
-clean trace still fails on exactly one, José Ortega y Gasset. `pass_mark` is the
-single line to change if that feels wrong under a real finger.
+the two-point rise is what it costs: 91 of the 280 honest attempts fail. 79 of
+those are the deliberately shaky attempt, wandering about two pen widths off the
+line, which is the population the bar exists to catch. Of the rest, a steady hand
+— wobbling about one pen width — fails on five levels, a doubled-back trace on
+three and edge-tracing on four. **A clean trace now fails on none at all**,
+which is the best that number has been. `pass_mark` is the single line to change
+if any of it feels wrong under a real finger.
+
+### Running the sweep without a browser
+
+`dev/grade-test.html?auto` presses the button by itself and parks the output
+between two markers, so the whole run can be checked from a terminal:
+
+```sh
+python -m http.server 8000   # any static server, from the repo root
+chrome --headless --virtual-time-budget=600000        --dump-dom 'http://127.0.0.1:8000/dev/grade-test.html?auto'
+```
+
+Read the result out of the `<pre id="autosweep">` element rather than by
+grepping the dump for the markers, which also match the script that writes
+them. Same harness and the same numbers either way; this only saves needing a
+browser extension in the loop.
 
 The sweep is also what catches a broken *signature*, as opposed to a broken
 score. See the note on Max Weber under Curation.
@@ -357,7 +372,7 @@ each signature's complexity, and keeps the most famous per theme ordered by
 difficulty. Fame picks the names; difficulty sets the ramp. Each level also
 carries a link to the subject's English Wikipedia article.
 
-### Why nine tracks of twenty-eight
+### Why ten tracks of twenty-eight
 
 Because of the explorers, and the number is measured rather than chosen. Counted
 end to end — every fame level, no floor at all — Wikidata holds about 108
@@ -368,13 +383,30 @@ reachable at any fame floor, and there is no occupation to add: ranking every
 unindexed occupation in the pool by headcount turns up nothing frontier-adjacent
 above single figures.
 
-So the corpus grows sideways as well as down. Four tracks have been split off
+So the corpus grows sideways as well as down. Five tracks have been split off
 larger pools: Philosophers & Historians out of what is now Writers & Poets,
-Monarchs & Nobility out of Statesmen & Revolutionaries, and Composers &
-Musicians out of what is now Painters & Sculptors. Every one of the nine has at
-least 96 candidates against a 28 requirement.
+Monarchs & Nobility out of Statesmen & Revolutionaries, Composers & Musicians
+out of what is now Painters & Sculptors, and Architects & Engineers out of both
+the painters (who held `architect`) and the scientists (who held `engineer`).
 
-A tenth was tried and cut. **Rebels & Reformers** — revolutionary and activist,
+**Architects & Engineers is listed last, and the position is the whole design.**
+Architecture and design attach to a great many people who are not architects —
+Michelangelo, Munch, Manet, Klee, Mondrian and Turner all carry one — and
+engineering attaches to every politician with a technical degree, Yasser Arafat
+included. Placed first the track swallowed all of them. Placed last, every tie
+falls to the other track, and all three tie cases resolve the way a player would
+expect: painter beats architect, politician beats engineer, scientist beats
+engineer. A genuine architect has no tie to lose, so the track fills with Le
+Corbusier, Frank Lloyd Wright, Kenzō Tange, Victor Horta, Marcel Breuer, Cerdà,
+Bazalgette, Citroën and Colt.
+
+The roots are architect, engineer and *designer*. Not `draftsperson`, which was
+tried and rejected: Wikidata means it in the artist's sense, and it arrived with
+Dalí, Munch and Manet and a wave of cartoonists behind them — Hergé, Schulz,
+Tezuka, Toriyama, Peyo. That would have been a second art track wearing an
+engineer's name.
+
+One track was tried and cut. **Rebels & Reformers** — revolutionary and activist,
 split off the statesmen — turned out to be a category defined by opposition
 rather than by achievement, and that sweeps in whoever opposed anything: it
 filed the Unabomber between Rosa Parks and John Brown, and the founder of the
@@ -460,6 +492,16 @@ at every step. It draws as perfectly plausible handwriting on the contact sheet.
 What gave it away was the sweep — a *perfect* trace of it scored 45%, with line
 quality at zero, because the reference line itself has the tremor the score
 exists to detect. There is no such thing as tracing it well.
+
+André Citroën's is neither, and it is the subtlest of the three. Nothing is
+wrong with the artwork — 317 points, below the corpus median, and it draws as a
+perfectly good hand. But the long underline beneath the name is a stroke that
+spends its whole length away from the lettering, which is exactly what the
+stray-stroke charge exists to catch, and it fires on the real signature. The
+sweep had every honest attempt failing by twelve points or more — clean 64,
+steady 54, doubled-back 46, edges 61, against a pass mark of 76 — on components
+that all look healthy in isolation: precision 92, coverage 99, fluency 81. There
+is no way to trace it well either, so it goes.
 
 Claude Monet's is *loss*: one filled path whose subpaths do not join up, so the
 name arrives with its connecting strokes missing and the letters in pieces.

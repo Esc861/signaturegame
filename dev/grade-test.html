@@ -471,6 +471,26 @@
     }, 30);
   });
 
+  /* Headless entry point. With ?auto on the URL the sweep runs by itself and
+     parks its output between two markers, so the whole run can be checked from
+     a terminal with no browser extension in the loop:
+
+       chrome --headless --virtual-time-budget=600000 --dump-dom \n              http://127.0.0.1:8000/dev/grade-test.html?auto
+
+     Same harness and the same numbers; this only presses the button. */
+  if (/(^|[?&])auto(&|=|$)/.test(location.search)) {
+    var marker = document.createElement('pre');
+    marker.id = 'autosweep';
+    document.body.appendChild(marker);
+    document.getElementById('sweep').click();
+    var poll = setInterval(function () {
+      var box = document.getElementById('sweepout');
+      if (box.hidden) return;
+      clearInterval(poll);
+      marker.textContent = 'BEGIN-SWEEP' + box.textContent + 'END-SWEEP';
+    }, 200);
+  }
+
   document.getElementById('out').innerHTML = lines.join('\n');
   var sum = document.getElementById('summary');
   sum.textContent = failures ? (failures + ' check(s) FAILED') : 'all checks passed';
