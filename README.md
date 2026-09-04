@@ -4,7 +4,7 @@ A touch-first web game: trace the signatures of history over a faded guide, get
 scored on accuracy, and unlock progressively harder hands across ten
 collections.
 
-280 signatures — ten tracks of twenty-eight — sourced from Wikidata and Wikimedia
+300 signatures — ten tracks of thirty — sourced from Wikidata and Wikimedia
 Commons.
 
 ## Playing it
@@ -208,7 +208,7 @@ five honest attempts and ten cheats and reports the two numbers that matter —
 `SG.grade.tune({...})` from the console changes the constants live, so a
 parameter search does not mean editing files between runs.
 
-As it stands, across the full 280: **2800 cheat attempts, none of them pass**,
+As it stands, across the full 300: **3000 cheat attempts, none of them pass**,
 the best reaching 71% against a floor of 76%.
 
 That floor moved for a reason worth recording. Putting more weight on sharp
@@ -226,14 +226,16 @@ correction; it is simply asking for more, and every level costs two points more
 than it did. The cushion under the best cheat widens to five points as a side
 effect.
 
-Above the floor the picture is a judgement rather than a correctness result, and
-the two-point rise is what it costs: 91 of the 280 honest attempts fail. 79 of
-those are the deliberately shaky attempt, wandering about two pen widths off the
-line, which is the population the bar exists to catch. Of the rest, a steady hand
-— wobbling about one pen width — fails on five levels, a doubled-back trace on
-three and edge-tracing on four. **A clean trace now fails on none at all**,
-which is the best that number has been. `pass_mark` is the single line to change
-if any of it feels wrong under a real finger.
+Above the floor the picture is a judgement rather than a correctness result: 81
+of the 300 honest attempts fail, which is 27% against 32% at the previous size.
+63 of those are the deliberately shaky attempt, wandering about two pen widths
+off the line, which is the population the bar exists to catch. Of the rest, a
+steady hand — wobbling about one pen width — fails on seven levels, a
+doubled-back trace on six and edge-tracing on three. A clean trace fails on two,
+Sean Connery and José Ortega y Gasset, both by three or four points; that is the
+honest cost of deriving a threshold from difficulty rather than from measurement
+of each level. `pass_mark` is the single line to change if any of it feels wrong
+under a real finger.
 
 ### Running the sweep without a browser
 
@@ -372,7 +374,7 @@ each signature's complexity, and keeps the most famous per theme ordered by
 difficulty. Fame picks the names; difficulty sets the ramp. Each level also
 carries a link to the subject's English Wikipedia article.
 
-### Why ten tracks of twenty-eight
+### Why ten tracks of thirty
 
 Because of the explorers, and the number is measured rather than chosen. Counted
 end to end — every fame level, no floor at all — Wikidata holds about 108
@@ -507,6 +509,26 @@ Claude Monet's is *loss*: one filled path whose subpaths do not join up, so the
 name arrives with its connecting strokes missing and the letters in pieces.
 Worth checking before blaming the pipeline — all 20 of its subpaths survive to
 the corpus exactly as the file draws them. The source is simply poor.
+
+### Winding, and the holes at every crossing
+
+A browser fills each drawing element on its own and composites the results, so
+two elements that overlap simply paint over each other. The build fills every
+contour in one pass, which is faster and identical — right up until two elements
+overlap with *opposite* winding, when the nonzero rule sums them to zero and
+punches a hole.
+
+Edward IV's signature is ten separate `<path>` elements, one per pen stroke, and
+it arrived with a white notch bitten out of it at every place two strokes cross.
+Auditing the corpus found **12 of 300 levels** with mixed winding across their
+elements, Le Corbusier and Kenzō Tange worst among them, and — awkwardly —
+Bouguereau, who is the level the best cheat in the sweep scores on.
+
+`fix_winding` in `tools/build_corpus.py` normalises the sign of each element's
+largest contour, reversing whole elements rather than changing how they are
+filled. That costs nothing at render time and travels with the corpus to the
+browser, so the game gets the fix for free. Winding *within* an element is left
+alone, which is what keeps the counter of an 'o' a hole rather than a blot.
 
 ### Invisible paths, and why they were not invisible
 

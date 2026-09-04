@@ -494,6 +494,7 @@ def parse_svg(svg_text, quality=1.0):
     root = ET.fromstring(svg_text)
 
     shapes = []
+    group = [0]
 
     def walk(el, mat, inherited):
         tag = _local_tag(el)
@@ -505,7 +506,15 @@ def parse_svg(svg_text, quality=1.0):
 
         rule = style.get("fill-rule", "nonzero").lower()
         paints = _visible(style)
-        for pts, closed in _shape_subpaths(el, tag, quality):
+        subpaths = _shape_subpaths(el, tag, quality)
+        if paints and subpaths:
+            # Which drawing element these subpaths came from. A browser fills
+            # each element separately and composites the results, so windings
+            # never cancel between two of them; only subpaths of the *same*
+            # element interact, which is how a letter gets its counter. The
+            # caller needs the grouping to reproduce that.
+            group[0] += 1
+        for pts, closed in subpaths:
             if not paints:
                 continue
             shapes.append({
@@ -513,6 +522,7 @@ def parse_svg(svg_text, quality=1.0):
                 "closed": closed,
                 "kind": _kind(style),
                 "rule": "evenodd" if rule == "evenodd" else "nonzero",
+                "group": group[0],
             })
 
         for child in el:

@@ -41,7 +41,7 @@ APP = os.path.join(ROOT, "docs")
 
 BOX = 1000.0          # normalized long side
 RDP_EPS = 1.1         # simplification tolerance, in BOX units
-PER_THEME = 28        # levels per track
+PER_THEME = 30        # levels per track
 TRY_PER_THEME = 460   # candidates to attempt, to survive conversion failures
 
 # Minimum width-to-height ratio. Wide-only is a fairness rule, not taste.
@@ -77,6 +77,38 @@ class Rejected(Exception):
     pass
 
 
+def fix_winding(shapes):
+    """Make every path element wind the same way round its outside.
+
+    A browser fills each drawing element on its own and composites the
+    results, so two elements that overlap simply paint over each other. We
+    fill every contour in one pass, which is faster and identical - right up
+    until two elements overlap with opposite winding, when the nonzero rule
+    sums them to zero and punches a hole.
+
+    That is not hypothetical. Edward IV's signature is ten separate <path>
+    elements, one per pen stroke, and it arrived with a white notch bitten out
+    of it at every single place two strokes cross.
+
+    The fix is to reverse whole elements rather than to change how they are
+    filled, so it costs nothing at render time and travels with the corpus to
+    the browser. Within an element the winding is left alone - that is what
+    makes the counter of an 'o' a hole rather than a blot - and only the sign
+    of the largest contour, the outside of the element, is normalised.
+    """
+    groups = {}
+    for s in shapes:
+        groups.setdefault(s.get("group", 0), []).append(s)
+    flipped = 0
+    for members in groups.values():
+        outer = max(members, key=lambda m: abs(geometry.polygon_area(m["points"])))
+        if geometry.polygon_area(outer["points"]) < 0:
+            flipped += 1
+            for m in members:
+                m["points"] = m["points"][::-1]
+    return shapes, flipped
+
+
 def convert(svg_text):
     """SVG text -> normalized, simplified shapes + metrics.
 
@@ -90,6 +122,8 @@ def convert(svg_text):
     shapes = geometry.prune(shapes, min_frac=0.003)
     if not shapes:
         raise Rejected("nothing left after pruning")
+
+    shapes, _ = fix_winding(shapes)
 
     shapes, w, h = geometry.normalize(shapes, BOX)
     if w <= 0 or h <= 0:

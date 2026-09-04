@@ -340,7 +340,7 @@ THEMES = [
     {
         "id": "science",
         "name": "Scientists & Inventors",
-        "blurb": "Physicists, doctors, engineers and mathematicians.",
+        "blurb": "Physicists, chemists, doctors and mathematicians.",
         "roots": ["Q901",        # scientist
                   "Q205375",     # inventor
                   "Q170790",     # mathematician
@@ -385,7 +385,7 @@ THEMES = [
     {
         "id": "builders",
         "name": "Architects & Engineers",
-        "blurb": "The signature went on the drawing, not the building.",
+        "blurb": "The signature went on the drawing, not the thing built.",
         # Last, and the position is the whole design. Architecture and design
         # attach to a great many people who are not architects - Michelangelo,
         # Munch, Manet, Klee, Mondrian and Turner all carry one - and so does
@@ -400,7 +400,13 @@ THEMES = [
         # cartoonists behind them - Herge, Schulz, Tezuka, Toriyama, Peyo.
         "roots": ["Q42973",      # architect
                   "Q81096",      # engineer
-                  "Q5322166"],   # designer
+                  "Q5322166",    # designer
+                  # Engineers who manufactured at scale. Added to reach a full
+                  # track, and they belong: Ford was a machinist before he was
+                  # anything else, and reads oddly filed beside Einstein and
+                  # Curie. Bosch and Ferrari arrive with him.
+                  "Q13235160",   # manufacturer
+                  "Q6606110"],   # industrialist
     },
 ]
 

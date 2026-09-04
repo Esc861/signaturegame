@@ -11,7 +11,7 @@
  */
 
 /* GENERATED-BEGIN tools/bump_cache.py */
-var CACHE = 'historic-ink-59b23e4d1e';
+var CACHE = 'historic-ink-d4d84bb689';
 
 var ASSETS = [
   './',
